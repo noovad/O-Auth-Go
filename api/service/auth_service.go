@@ -9,7 +9,17 @@ import (
 	"golang.org/x/oauth2"
 )
 
-func GetUserInfo(state string, code string) ([]byte, error) {
+type AuthService interface {
+	GetUserInfo(state string, code string) ([]byte, error)
+}
+
+type authService struct{}
+
+func NewAuthService() AuthService {
+	return &authService{}
+}
+
+func (s *authService) GetUserInfo(state string, code string) ([]byte, error) {
 	if state != config.OauthStateString {
 		return nil, fmt.Errorf("invalid oauth state")
 	}

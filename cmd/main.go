@@ -9,7 +9,6 @@ import (
 	"os"
 	"time"
 
-	"github.com/go-playground/validator/v10"
 	"github.com/joho/godotenv"
 )
 
@@ -29,8 +28,7 @@ func main() {
 
 	config.InitOAuth()
 
-	validate := validator.New()
-	r := router.SetupRouter(db, validate)
+	r := router.SetupRouter()
 
 	server := &http.Server{
 		Addr:           ":" + os.Getenv("PORT"),

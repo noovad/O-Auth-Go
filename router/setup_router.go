@@ -4,11 +4,9 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/go-playground/validator/v10"
-	"gorm.io/gorm"
 )
 
-func SetupRouter(db *gorm.DB, validate *validator.Validate) *gin.Engine {
+func SetupRouter() *gin.Engine {
 	router := gin.Default()
 
 	router.GET("/ping", func(c *gin.Context) {
