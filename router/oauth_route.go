@@ -1,6 +1,7 @@
 package router
 
 import (
+	"learn_o_auth-project/api"
 	"learn_o_auth-project/api/controller"
 	"learn_o_auth-project/presentation"
 
@@ -9,6 +10,7 @@ import (
 
 func OAuthRoutes(r *gin.Engine) {
 	r.GET("/", presentation.LoginPage)
+	r.GET("/home", presentation.HomePage)
 	r.GET("/login", controller.HandleGoogleLogin)
-	r.GET("/callback", controller.HandleGoogleCallback)
+	r.GET("/callback", api.InitializeAuthController().HandleGoogleCallback)
 }
