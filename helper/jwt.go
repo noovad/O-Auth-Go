@@ -2,13 +2,14 @@ package helper
 
 import (
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 )
 
-func createToken(ctx *gin.Context, id, secret string, duration time.Duration, cookieName string) error {
+func createToken(ctx *gin.Context, id int, secret string, duration time.Duration, cookieName string) error {
 	claims := jwt.MapClaims{
 		"id":  id,
 		"exp": time.Now().Add(duration).Unix(),
@@ -25,12 +26,12 @@ func createToken(ctx *gin.Context, id, secret string, duration time.Duration, co
 	return nil
 }
 
-func CreateAccessToken(ctx *gin.Context, id string) error {
+func CreateAccessToken(ctx *gin.Context, id int) error {
 	secret := os.Getenv("GENERATE_TOKEN_SECRET")
 	return createToken(ctx, id, secret, time.Minute*30, "Authorization")
 }
 
-func CreateRefreshToken(ctx *gin.Context, id string) error {
+func CreateRefreshToken(ctx *gin.Context, id int) error {
 	secret := os.Getenv("GENERATE_REFRESH_TOKEN_SECRET")
 	return createToken(ctx, id, secret, time.Hour*24*7, "Refresh-token")
 }
@@ -61,7 +62,12 @@ func AuthMiddleware(ctx *gin.Context) {
 				ctx.Abort()
 				return
 			}
-			id := claims["id"].(string)
+			id, err := strconv.Atoi(claims["id"].(string))
+			if err != nil {
+				UnauthorizedResponse(ctx)
+				ctx.Abort()
+				return
+			}
 			CreateAccessToken(ctx, id)
 		} else {
 			UnauthorizedResponse(ctx)

@@ -20,7 +20,7 @@ func InitializeAuthController() *controller.UsersAuthController {
 	usersRepository := repository.NewUsersREpositoryImpl(db)
 	validate := config.NewValidator()
 	usersService := service.NewUsersServiceImpl(usersRepository, validate)
-	authService := service.NewAuthService()
+	authService := service.NewAuthService(usersService)
 	usersAuthController := controller.NewUsersAuthController(usersService, authService)
 	return usersAuthController
 }

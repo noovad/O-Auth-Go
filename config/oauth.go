@@ -10,7 +10,6 @@ import (
 )
 
 var GoogleOauthConfig *oauth2.Config
-var OauthStateString = "pseudo-random"
 
 func InitOAuth() {
 	if err := godotenv.Load(); err != nil {

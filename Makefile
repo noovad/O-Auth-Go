@@ -1,5 +1,12 @@
 run:
-	air
+	air -c .air.toml
 
-migrate:
-	go run model/migrate.go
+dev:
+	go run cmd/main.go
+
+clean:
+	rm -rf tmp/
+	go clean -cache
+
+gen:
+	wire gen ./api
