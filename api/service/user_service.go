@@ -11,7 +11,7 @@ import (
 
 type UsersService interface {
 	CreateAndReturnID(user data.CreateUsersRequest) (int, error)
-	FindByEmail(Email string) (data.UsersResponse, error)
+	FindByEmail(Email string) (data.UserResponse, error)
 }
 
 func NewUsersServiceImpl(userRepository repository.UsersRepository, validate *validator.Validate) UsersService {
@@ -40,13 +40,13 @@ func (t *UsersServiceImpl) CreateAndReturnID(user data.CreateUsersRequest) (int,
 	return t.UsersRepository.SaveAndReturnID(userModel)
 }
 
-func (t *UsersServiceImpl) FindByEmail(Email string) (data.UsersResponse, error) {
+func (t *UsersServiceImpl) FindByEmail(Email string) (data.UserResponse, error) {
 	userData, err := t.UsersRepository.FindByEmail(Email)
 	if err != nil {
-		return data.UsersResponse{}, err
+		return data.UserResponse{}, err
 	}
 
-	return data.UsersResponse{
+	return data.UserResponse{
 		Id:       userData.Id,
 		Username: userData.Username,
 		Email:    userData.Email,

@@ -5,7 +5,7 @@ type CreateUsersRequest struct {
 	Email    string `validate:"required,email" json:"email"`
 }
 
-type UsersResponse struct {
+type UserResponse struct {
 	Id       int    `json:"id"`
 	Email    string `json:"email"`
 	Username string `json:"username"`
