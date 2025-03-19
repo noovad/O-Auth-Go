@@ -9,8 +9,8 @@ import (
 )
 
 type UsersRepository interface {
-	Save(Users model.Users)
-	FindByEmail(Email string) (Users model.Users, err error)
+	Save(Users model.Users) error
+	FindByEmail(Email string) (model.Users, error)
 }
 
 func NewUsersREpositoryImpl(Db *gorm.DB) UsersRepository {
@@ -21,17 +21,22 @@ type UsersRepositoryImpl struct {
 	Db *gorm.DB
 }
 
-func (t *UsersRepositoryImpl) FindByEmail(Email string) (Users model.Users, err error) {
-	var user model.Users
-	result := t.Db.Where("email = ?", Email).First(&user)
-	if result != nil {
-		return user, nil
-	} else {
-		return user, errors.New("user is not found")
+func (t *UsersRepositoryImpl) Save(Users model.Users) error {
+	result := t.Db.Create(&Users)
+	if result.Error != nil {
+		return result.Error
 	}
+	return nil
 }
 
-func (t *UsersRepositoryImpl) Save(Users model.Users) {
-	result := t.Db.Create(&Users)
-	helper.ErrorPanic(result.Error)
+func (t *UsersRepositoryImpl) FindByEmail(Email string) (model.Users, error) {
+	var user model.Users
+	result := t.Db.Where("email = ?", Email).First(&user)
+
+	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		return user, helper.ErrUserNotFound
+	} else if result.Error != nil {
+		return user, result.Error
+	}
+	return user, nil
 }
