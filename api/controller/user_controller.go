@@ -1,10 +1,10 @@
 package controller
 
 import (
+	"errors"
 	"learn_o_auth-project/api/service"
 	"learn_o_auth-project/data"
 	"learn_o_auth-project/helper"
-	"net/http"
 
 	"github.com/gin-gonic/gin"
 )
@@ -22,28 +22,33 @@ func NewUsersController(service service.UsersService) *UsersController {
 func (controller *UsersController) Create(ctx *gin.Context) {
 	createUsersRequest := data.CreateUsersRequest{}
 	err := ctx.ShouldBindJSON(&createUsersRequest)
-	helper.ErrorPanic(err)
-
-	controller.usersService.Create(createUsersRequest)
-	webResponse := data.Response{
-		Code:   http.StatusOK,
-		Status: "Ok",
-		Data:   nil,
+	if err != nil {
+		helper.BadRequestResponse(ctx, err)
+		return
 	}
-	ctx.Header("Content-Type", "application/json")
-	ctx.JSON(http.StatusOK, webResponse)
+
+	err = controller.usersService.Create(createUsersRequest)
+	if err != nil {
+		helper.InternalServerErrorResponse(ctx, err)
+		return
+	}
+
+	helper.SuccessResponse(ctx, "create", nil)
 }
 
 func (controller *UsersController) FindByEmail(ctx *gin.Context) {
 	email := ctx.Param("email")
 
-	userResponse := controller.usersService.FindByEmail(email)
+	userResponse, err := controller.usersService.FindByEmail(email)
 
-	webResponse := data.Response{
-		Code:   http.StatusOK,
-		Status: "Ok",
-		Data:   userResponse,
+	if err != nil {
+		if errors.Is(err, helper.ErrUserNotFound) {
+			helper.NotFoundResponse(ctx, "User not found")
+			return
+		}
+		helper.InternalServerErrorResponse(ctx, err)
+		return
 	}
-	ctx.Header("Content-Type", "application/json")
-	ctx.JSON(http.StatusOK, webResponse)
+
+	helper.SuccessResponse(ctx, "read", userResponse)
 }
