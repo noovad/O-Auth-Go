@@ -1,12 +1,11 @@
 package service
 
 import (
-	"fmt"
-	"io/ioutil"
+	"context"
+	"io"
 	"learn_o_auth-project/config"
+	"learn_o_auth-project/helper"
 	"net/http"
-
-	"golang.org/x/oauth2"
 )
 
 type AuthService interface {
@@ -21,23 +20,23 @@ func NewAuthService() AuthService {
 
 func (s *authService) GetUserInfo(state string, code string) ([]byte, error) {
 	if state != config.OauthStateString {
-		return nil, fmt.Errorf("invalid oauth state")
+		return nil, helper.ErrInvalidOAuthState
 	}
 
-	token, err := config.GoogleOauthConfig.Exchange(oauth2.NoContext, code)
+	token, err := config.GoogleOauthConfig.Exchange(context.Background(), code)
 	if err != nil {
-		return nil, fmt.Errorf("code exchange failed: %s", err.Error())
+		return nil, helper.ErrCodeExchangeFailed(err)
 	}
 
 	response, err := http.Get("https://www.googleapis.com/oauth2/v2/userinfo?access_token=" + token.AccessToken)
 	if err != nil {
-		return nil, fmt.Errorf("failed getting user info: %s", err.Error())
+		return nil, helper.ErrFailedGetUserInfo(err)
 	}
 	defer response.Body.Close()
 
-	contents, err := ioutil.ReadAll(response.Body)
+	contents, err := io.ReadAll(response.Body)
 	if err != nil {
-		return nil, fmt.Errorf("failed reading response body: %s", err.Error())
+		return nil, helper.ErrFailedReadResponseBody(err)
 	}
 
 	return contents, nil

@@ -3,13 +3,14 @@ package service
 import (
 	"learn_o_auth-project/api/repository"
 	"learn_o_auth-project/data"
+	"learn_o_auth-project/helper"
 	"learn_o_auth-project/model"
 
 	"github.com/go-playground/validator/v10"
 )
 
 type UsersService interface {
-	Create(Users data.CreateUsersRequest) error
+	CreateAndReturnID(user data.CreateUsersRequest) (int, error)
 	FindByEmail(Email string) (data.UsersResponse, error)
 }
 
@@ -25,22 +26,18 @@ type UsersServiceImpl struct {
 	Validate        *validator.Validate
 }
 
-func (t *UsersServiceImpl) Create(Users data.CreateUsersRequest) error {
-	err := t.Validate.Struct(Users)
+func (t *UsersServiceImpl) CreateAndReturnID(user data.CreateUsersRequest) (int, error) {
+	err := t.Validate.Struct(user)
 	if err != nil {
-		return err
+		return 0, helper.ErrFailedValidationWrap(err)
 	}
 
 	userModel := model.Users{
-		Username: Users.Username,
-		Email:    Users.Email,
+		Username: user.Username,
+		Email:    user.Email,
 	}
 
-	err = t.UsersRepository.Save(userModel)
-	if err != nil {
-		return err
-	}
-	return nil
+	return t.UsersRepository.SaveAndReturnID(userModel)
 }
 
 func (t *UsersServiceImpl) FindByEmail(Email string) (data.UsersResponse, error) {
