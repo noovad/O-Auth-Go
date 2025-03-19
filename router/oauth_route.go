@@ -10,11 +10,12 @@ import (
 )
 
 func OAuthRoutes(r *gin.Engine) {
-	midleware := helper.RequireAccessToken
+	authMidleware := helper.AuthMiddleware
+	guestMiddleware := helper.GuestMiddleware
 
 	r.GET("/", presentation.LoginPage)
-	r.GET("/home", midleware, presentation.HomePage)
-	r.GET("/login", controller.HandleGoogleLogin)
-	r.GET("/logout", controller.HandleLogOut)
+	r.GET("/home", authMidleware, presentation.HomePage)
+	r.GET("/login", guestMiddleware, controller.HandleGoogleLogin)
+	r.GET("/logout", authMidleware, controller.HandleLogOut)
 	r.GET("/callback", api.InitializeAuthController().HandleGoogleCallback)
 }

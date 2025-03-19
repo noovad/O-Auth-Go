@@ -2,6 +2,7 @@ package controller
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"learn_o_auth-project/api/service"
 	"learn_o_auth-project/config"
@@ -24,9 +25,9 @@ func NewUsersAuthController(userService service.UsersService, authService servic
 	}
 }
 
-func HandleGoogleLogin(c *gin.Context) {
+func HandleGoogleLogin(ctx *gin.Context) {
 	url := config.GoogleOauthConfig.AuthCodeURL(config.OauthStateString)
-	c.Redirect(http.StatusTemporaryRedirect, url)
+	ctx.Redirect(http.StatusTemporaryRedirect, url)
 }
 
 func HandleLogOut(c *gin.Context) {
@@ -34,35 +35,52 @@ func HandleLogOut(c *gin.Context) {
 	c.Redirect(http.StatusTemporaryRedirect, "/")
 }
 
-func (controller *UsersAuthController) HandleGoogleCallback(c *gin.Context) {
-	state := c.Query("state")
-	code := c.Query("code")
+func (controller *UsersAuthController) HandleGoogleCallback(ctx *gin.Context) {
+	state := ctx.Query("state")
+	code := ctx.Query("code")
 
 	content, err := controller.authService.GetUserInfo(state, code)
 	if err != nil {
-		c.Redirect(http.StatusTemporaryRedirect, "/")
+		helper.InternalServerErrorResponse(ctx, err)
 		return
 	}
 	var loginAccount map[string]interface{}
 	if err := json.Unmarshal(content, &loginAccount); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to parse response"})
+		helper.InternalServerErrorResponse(ctx, err)
 		return
 	}
 
-	email := loginAccount["email"].(string)
+	email, ok := loginAccount["email"].(string)
+	if !ok {
+		helper.InternalServerErrorResponse(ctx, helper.ErrFailedToGetEmail)
+		return
+	}
 
-	userId := controller.usersService.FindByEmail(email).Id
-
-	if userId == 0 {
-		controller.usersService.Create(data.CreateUsersRequest{
+	var userId int
+	userResponse, err := controller.usersService.FindByEmail(email)
+	if errors.Is(err, helper.ErrUserNotFound) {
+		userId, err = controller.usersService.CreateAndReturnID(data.CreateUsersRequest{
 			Username: helper.GetUsernameFromEmail(email),
 			Email:    email,
 		})
-		userId = controller.usersService.FindByEmail(email).Id
+		if err != nil {
+			if errors.Is(err, helper.ErrFailedValidation) {
+				helper.BadRequestResponse(ctx, err)
+				return
+			}
+
+			helper.InternalServerErrorResponse(ctx, err)
+			return
+		}
+	} else if err != nil {
+		helper.InternalServerErrorResponse(ctx, err)
+		return
+	} else {
+		userId = userResponse.Id
 	}
 
-	helper.CreateAccessToken(c, fmt.Sprintf("%d", userId))
-	helper.CreateRefreshToken(c, fmt.Sprintf("%d", userId))
+	helper.CreateAccessToken(ctx, fmt.Sprintf("%d", userId))
+	helper.CreateRefreshToken(ctx, fmt.Sprintf("%d", userId))
 
-	c.Redirect(http.StatusTemporaryRedirect, "/home")
+	ctx.Redirect(http.StatusFound, "/home")
 }

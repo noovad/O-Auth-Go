@@ -42,19 +42,27 @@ func SuccessResponse(ctx *gin.Context, action string, data interface{}) {
 	})
 }
 
+func UnauthorizedResponse(ctx *gin.Context) {
+	ctx.JSON(http.StatusUnauthorized, Response{
+		Code:   http.StatusUnauthorized,
+		Status: "Unauthorized",
+		Data:   nil,
+	})
+}
+
+func InternalServerErrorResponse(ctx *gin.Context, err error) {
+	ctx.JSON(http.StatusInternalServerError, Response{
+		Code:   http.StatusInternalServerError,
+		Status: "Internal Server Error",
+		Data:   err.Error(),
+	})
+}
+
 func BadRequestResponse(ctx *gin.Context, err error) {
 	ctx.JSON(http.StatusBadRequest, Response{
 		Code:   http.StatusBadRequest,
 		Status: "Bad Request",
 		Data:   err.Error(),
-	})
-}
-
-func UnauthorizedResponse(ctx *gin.Context, message string) {
-	ctx.JSON(http.StatusUnauthorized, Response{
-		Code:   http.StatusUnauthorized,
-		Status: "Unauthorized",
-		Data:   message,
 	})
 }
 
@@ -66,42 +74,34 @@ func ForbiddenResponse(ctx *gin.Context, message string) {
 	})
 }
 
-func NotFoundResponse(ctx *gin.Context, message string) {
-	ctx.JSON(http.StatusNotFound, Response{
-		Code:   http.StatusNotFound,
-		Status: "Not Found",
-		Data:   message,
-	})
-}
+// func NotFoundResponse(ctx *gin.Context, message string) {
+// 	ctx.JSON(http.StatusNotFound, Response{
+// 		Code:   http.StatusNotFound,
+// 		Status: "Not Found",
+// 		Data:   message,
+// 	})
+// }
 
-func ConflictResponse(ctx *gin.Context, message string) {
-	ctx.JSON(http.StatusConflict, Response{
-		Code:   http.StatusConflict,
-		Status: "Conflict",
-		Data:   message,
-	})
-}
+// func ConflictResponse(ctx *gin.Context, message string) {
+// 	ctx.JSON(http.StatusConflict, Response{
+// 		Code:   http.StatusConflict,
+// 		Status: "Conflict",
+// 		Data:   message,
+// 	})
+// }
 
-func UnprocessableEntityResponse(ctx *gin.Context, err error) {
-	ctx.JSON(http.StatusUnprocessableEntity, Response{
-		Code:   http.StatusUnprocessableEntity,
-		Status: "Unprocessable Entity",
-		Data:   err.Error(),
-	})
-}
+// func UnprocessableEntityResponse(ctx *gin.Context, err error) {
+// 	ctx.JSON(http.StatusUnprocessableEntity, Response{
+// 		Code:   http.StatusUnprocessableEntity,
+// 		Status: "Unprocessable Entity",
+// 		Data:   err.Error(),
+// 	})
+// }
 
-func TooManyRequestsResponse(ctx *gin.Context, message string) {
-	ctx.JSON(http.StatusTooManyRequests, Response{
-		Code:   http.StatusTooManyRequests,
-		Status: "Too Many Requests",
-		Data:   message,
-	})
-}
-
-func InternalServerErrorResponse(ctx *gin.Context, err error) {
-	ctx.JSON(http.StatusInternalServerError, Response{
-		Code:   http.StatusInternalServerError,
-		Status: "Internal Server Error",
-		Data:   err.Error(),
-	})
-}
+// func TooManyRequestsResponse(ctx *gin.Context, message string) {
+// 	ctx.JSON(http.StatusTooManyRequests, Response{
+// 		Code:   http.StatusTooManyRequests,
+// 		Status: "Too Many Requests",
+// 		Data:   message,
+// 	})
+// }
