@@ -29,31 +29,31 @@ func HandleGoogleLogin(c *gin.Context) {
 	c.Redirect(http.StatusTemporaryRedirect, url)
 }
 
+func HandleLogOut(c *gin.Context) {
+	helper.DeleteTokens(c)
+	c.Redirect(http.StatusTemporaryRedirect, "/")
+}
+
 func (controller *UsersAuthController) HandleGoogleCallback(c *gin.Context) {
 	state := c.Query("state")
 	code := c.Query("code")
 
 	content, err := controller.authService.GetUserInfo(state, code)
 	if err != nil {
-		fmt.Println(err.Error())
 		c.Redirect(http.StatusTemporaryRedirect, "/")
 		return
 	}
-	fmt.Println(string(content))
 	var loginAccount map[string]interface{}
 	if err := json.Unmarshal(content, &loginAccount); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to parse response"})
 		return
 	}
 
-	fmt.Println(loginAccount)
-
 	email := loginAccount["email"].(string)
 
 	userId := controller.usersService.FindByEmail(email).Id
 
 	if userId == 0 {
-		println(email)
 		controller.usersService.Create(data.CreateUsersRequest{
 			Username: helper.GetUsernameFromEmail(email),
 			Email:    email,
@@ -61,12 +61,8 @@ func (controller *UsersAuthController) HandleGoogleCallback(c *gin.Context) {
 		userId = controller.usersService.FindByEmail(email).Id
 	}
 
-	token, err := helper.CreateAccessToken(fmt.Sprintf("%d", userId))
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate token"})
-		return
-	}
+	helper.CreateAccessToken(c, fmt.Sprintf("%d", userId))
+	helper.CreateRefreshToken(c, fmt.Sprintf("%d", userId))
 
-	c.SetCookie("Authorization", token, 60*30, "/", "", false, true)
 	c.Redirect(http.StatusTemporaryRedirect, "/home")
 }
