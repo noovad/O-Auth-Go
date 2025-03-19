@@ -1,8 +1,6 @@
 package helper
 
 import (
-	"fmt"
-	"net/http"
 	"os"
 	"time"
 
@@ -10,59 +8,46 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-func CreateAccessToken(c *gin.Context, id string) error {
+func createToken(ctx *gin.Context, id, secret string, duration time.Duration, cookieName string) error {
+	claims := jwt.MapClaims{
+		"id":  id,
+		"exp": time.Now().Add(duration).Unix(),
+		"iat": time.Now().Unix(),
+	}
+
+	token, err := jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString([]byte(secret))
+	if err != nil {
+		InternalServerErrorResponse(ctx, err)
+		return err
+	}
+
+	ctx.SetCookie(cookieName, token, int(duration.Seconds()), "/", "", false, true)
+	return nil
+}
+
+func CreateAccessToken(ctx *gin.Context, id string) error {
 	secret := os.Getenv("GENERATE_TOKEN_SECRET")
-	var claims = jwt.MapClaims{
-		"id":  id,
-		"exp": time.Now().Add(time.Minute * 30).Unix(),
-		"iat": time.Now().Unix(),
-	}
-
-	jwtClaim := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	token, err := jwtClaim.SignedString([]byte(secret))
-
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate token"})
-		return err
-	}
-
-	c.SetCookie("Authorization", token, 60*30, "/", "", false, true)
-	return nil
+	return createToken(ctx, id, secret, time.Minute*30, "Authorization")
 }
 
-func CreateRefreshToken(c *gin.Context, id string) error {
+func CreateRefreshToken(ctx *gin.Context, id string) error {
 	secret := os.Getenv("GENERATE_REFRESH_TOKEN_SECRET")
-	var claims = jwt.MapClaims{
-		"id":  id,
-		"exp": time.Now().Add(time.Hour * 24 * 7).Unix(),
-		"iat": time.Now().Unix(),
-	}
-
-	jwtClaim := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	token, err := jwtClaim.SignedString([]byte(secret))
-
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate token"})
-		return err
-	}
-
-	c.SetCookie("Refresh-token", token, 60*60*24*7, "/", "", false, true)
-	return nil
+	return createToken(ctx, id, secret, time.Hour*24*7, "Refresh-token")
 }
 
-func DeleteTokens(c *gin.Context) {
-	c.SetCookie("Authorization", "", -1, "/", "", false, true)
-	c.SetCookie("Refresh-token", "", -1, "/", "", false, true)
+func DeleteTokens(ctx *gin.Context) {
+	ctx.SetCookie("Refresh-token", "", -1, "/", "", false, true)
+	ctx.SetCookie("Authorization", "", -1, "/", "", false, true)
 }
 
-func RequireAccessToken(c *gin.Context) {
-	accessToken, _ := c.Cookie("Authorization")
+func AuthMiddleware(ctx *gin.Context) {
+	accessToken, _ := ctx.Cookie("Authorization")
 	secret := os.Getenv("GENERATE_TOKEN_SECRET")
 	token, err := jwt.Parse(accessToken, func(token *jwt.Token) (any, error) {
 		return []byte(secret), nil
 	})
 
-	refresToken, _ := c.Cookie("Refresh-token")
+	refresToken, _ := ctx.Cookie("Refresh-token")
 	secretRefresh := os.Getenv("GENERATE_REFRESH_TOKEN_SECRET")
 	refreshToken, _ := jwt.Parse(refresToken, func(token *jwt.Token) (any, error) {
 		return []byte(secretRefresh), nil
@@ -72,23 +57,40 @@ func RequireAccessToken(c *gin.Context) {
 		if refresToken != "" && refreshToken.Valid {
 			claims, ok := refreshToken.Claims.(jwt.MapClaims)
 			if !ok {
-				c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
-				c.Abort()
+				UnauthorizedResponse(ctx)
+				ctx.Abort()
 				return
 			}
 			id := claims["id"].(string)
-			fmt.Println(id)
-			fmt.Println(claims)
-			CreateAccessToken(c, id)
+			CreateAccessToken(ctx, id)
 		} else {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
-			c.Abort()
+			UnauthorizedResponse(ctx)
+			ctx.Abort()
 			return
 		}
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
-		c.Abort()
+	}
+
+	ctx.Next()
+}
+
+func GuestMiddleware(ctx *gin.Context) {
+	accessToken, _ := ctx.Cookie("Authorization")
+	secret := os.Getenv("GENERATE_TOKEN_SECRET")
+	token, err := jwt.Parse(accessToken, func(token *jwt.Token) (any, error) {
+		return []byte(secret), nil
+	})
+
+	refresToken, _ := ctx.Cookie("Refresh-token")
+	secretRefresh := os.Getenv("GENERATE_REFRESH_TOKEN_SECRET")
+	refreshToken, _ := jwt.Parse(refresToken, func(token *jwt.Token) (any, error) {
+		return []byte(secretRefresh), nil
+	})
+
+	if (err == nil && accessToken != "" && token.Valid) || (err == nil && refresToken != "" && refreshToken.Valid) {
+		ForbiddenResponse(ctx, "You are already logged in")
+		ctx.Abort()
 		return
 	}
 
-	c.Next()
+	ctx.Next()
 }
