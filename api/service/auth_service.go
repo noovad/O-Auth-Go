@@ -31,32 +31,28 @@ func (s *authService) AuthenticateWithGoogle(ctx *gin.Context, state string, cod
 	if err != nil || state != cookieState {
 		return data.UserResponse{}, helper.ErrInvalidOAuthState
 	}
+	ctx.SetCookie("oauthstate", "", -1, "/", "", false, true)
 
 	content, err := s.getUserInfoFromGoogle(code)
 	if err != nil {
 		return data.UserResponse{}, err
 	}
 
-	var loginAccount map[string]interface{}
+	var loginAccount data.GoogleResponse
 	if err := json.Unmarshal(content, &loginAccount); err != nil {
 		return data.UserResponse{}, err
 	}
 
-	email, ok := loginAccount["email"].(string)
-	if !ok {
-		return data.UserResponse{}, helper.ErrFailedToGetEmail
-	}
-
-	user, err := s.usersService.FindByEmail(email)
+	user, err := s.usersService.FindByEmail(loginAccount.Email)
 	if errors.Is(err, helper.ErrUserNotFound) {
 		userId, err := s.usersService.CreateAndReturnID(data.CreateUsersRequest{
-			Username: helper.GetUsernameFromEmail(email),
-			Email:    email,
+			Username: loginAccount.Name,
+			Email:    loginAccount.Email,
 		})
 		if err != nil {
 			return data.UserResponse{}, err
 		}
-		user = data.UserResponse{Id: userId, Email: email}
+		user = data.UserResponse{Id: userId, Email: loginAccount.Email}
 	} else if err != nil {
 		return data.UserResponse{}, err
 	}
@@ -70,6 +66,10 @@ func (s *authService) getUserInfoFromGoogle(code string) ([]byte, error) {
 		return nil, helper.ErrCodeExchangeFailed(err)
 	}
 
+	// Note: This function can be improved by (Suggested by ChatGPT):
+	// - Using `http.Client` with a timeout to prevent indefinite hangs.
+	// - Sending the access token via `Authorization` header instead of query parameters for better security.
+	// - Checking the HTTP response status code before reading the body.
 	response, err := http.Get("https://www.googleapis.com/oauth2/v2/userinfo?access_token=" + token.AccessToken)
 	if err != nil {
 		return nil, helper.ErrFailedGetUserInfo(err)
