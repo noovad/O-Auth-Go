@@ -2,7 +2,6 @@ package helper
 
 import (
 	"os"
-	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -41,6 +40,11 @@ func DeleteTokens(ctx *gin.Context) {
 	ctx.SetCookie("Authorization", "", -1, "/", "", false, true)
 }
 
+// Note: This middleware can be enhanced by:
+// - Checking the token expiration time explicitly.
+// - Validating the user ID from the token with the database.
+// - Implementing role-based access control (RBAC) for different user permissions.
+// - Storing the authenticated user in the request context using ctx.Set("user", user) for easier access in handlers.
 func AuthMiddleware(ctx *gin.Context) {
 	accessToken, _ := ctx.Cookie("Authorization")
 	secret := os.Getenv("GENERATE_TOKEN_SECRET")
@@ -62,12 +66,13 @@ func AuthMiddleware(ctx *gin.Context) {
 				ctx.Abort()
 				return
 			}
-			id, err := strconv.Atoi(claims["id"].(string))
-			if err != nil {
+			idFloat, ok := claims["id"].(float64)
+			if !ok {
 				UnauthorizedResponse(ctx)
 				ctx.Abort()
 				return
 			}
+			id := int(idFloat)
 			CreateAccessToken(ctx, id)
 		} else {
 			UnauthorizedResponse(ctx)
@@ -79,6 +84,10 @@ func AuthMiddleware(ctx *gin.Context) {
 	ctx.Next()
 }
 
+// Note: This middleware can be enhanced by:
+// - Ensuring that both access and refresh tokens are properly invalidated when logging out.
+// - Redirecting authenticated users away from guest-only pages instead of returning a Forbidden response.
+// - Storing the guest status in the request context using ctx.Set("user", nil) for consistency.
 func GuestMiddleware(ctx *gin.Context) {
 	accessToken, _ := ctx.Cookie("Authorization")
 	secret := os.Getenv("GENERATE_TOKEN_SECRET")

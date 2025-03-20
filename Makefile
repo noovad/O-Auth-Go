@@ -10,3 +10,7 @@ clean:
 
 gen:
 	wire gen ./api
+
+install:
+	go mod tidy
+	go mod download
