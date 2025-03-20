@@ -23,7 +23,7 @@ func NewUsersAuthController(userService service.UsersService, authService servic
 
 func HandleGoogleLogin(ctx *gin.Context) {
 	state := helper.GenerateState()
-	ctx.SetCookie("oauthstate", state, 3600, "/", "", false, true)
+	ctx.SetCookie("oauthstate", state, 60, "/", "", false, true)
 
 	url := config.GoogleOauthConfig.AuthCodeURL(state)
 	ctx.Redirect(http.StatusTemporaryRedirect, url)
