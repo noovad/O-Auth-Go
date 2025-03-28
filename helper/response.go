@@ -6,14 +6,9 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type Response struct {
-	Code   int         `json:"code"`
-	Status string      `json:"status"`
-	Data   interface{} `json:"data"`
-}
+type Response struct{}
 
-// Create, Read, Update, Delete
-func SuccessResponse(ctx *gin.Context, action string, data interface{}) {
+func (Response) Success(ctx *gin.Context, action string, data interface{}) {
 	var code int
 	var message string
 
@@ -35,73 +30,73 @@ func SuccessResponse(ctx *gin.Context, action string, data interface{}) {
 		message = "Success"
 	}
 
-	ctx.JSON(code, Response{
-		Code:   code,
-		Status: message,
-		Data:   data,
+	ctx.JSON(code, gin.H{
+		"code":   code,
+		"status": message,
+		"data":   data,
 	})
 }
 
-func UnauthorizedResponse(ctx *gin.Context) {
-	ctx.JSON(http.StatusUnauthorized, Response{
-		Code:   http.StatusUnauthorized,
-		Status: "Unauthorized",
-		Data:   nil,
+func (Response) Unauthorized(ctx *gin.Context) {
+	ctx.JSON(http.StatusUnauthorized, gin.H{
+		"code":   http.StatusUnauthorized,
+		"status": "Unauthorized",
+		"data":   nil,
 	})
 }
 
-func InternalServerErrorResponse(ctx *gin.Context, err error) {
-	ctx.JSON(http.StatusInternalServerError, Response{
-		Code:   http.StatusInternalServerError,
-		Status: "Internal Server Error",
-		Data:   err.Error(),
+func (Response) InternalServerError(ctx *gin.Context, err error) {
+	ctx.JSON(http.StatusInternalServerError, gin.H{
+		"code":   http.StatusInternalServerError,
+		"status": "Internal Server Error",
+		"data":   err.Error(),
 	})
 }
 
-func BadRequestResponse(ctx *gin.Context, err error) {
-	ctx.JSON(http.StatusBadRequest, Response{
-		Code:   http.StatusBadRequest,
-		Status: "Bad Request",
-		Data:   err.Error(),
+func (Response) Forbidden(ctx *gin.Context, message string) {
+	ctx.JSON(http.StatusForbidden, gin.H{
+		"code":   http.StatusForbidden,
+		"status": "Forbidden",
+		"data":   message,
 	})
 }
 
-func ForbiddenResponse(ctx *gin.Context, message string) {
-	ctx.JSON(http.StatusForbidden, Response{
-		Code:   http.StatusForbidden,
-		Status: "Forbidden",
-		Data:   message,
-	})
-}
-
-// func NotFoundResponse(ctx *gin.Context, message string) {
-// 	ctx.JSON(http.StatusNotFound, Response{
-// 		Code:   http.StatusNotFound,
-// 		Status: "Not Found",
-// 		Data:   message,
+// func (Response) BadRequest(ctx *gin.Context, err error) {
+// 	ctx.JSON(http.StatusBadRequest, gin.H{
+// 		"code":   http.StatusBadRequest,
+// 		"status": "Bad Request",
+// 		"data":   err.Error(),
 // 	})
 // }
 
-// func ConflictResponse(ctx *gin.Context, message string) {
-// 	ctx.JSON(http.StatusConflict, Response{
-// 		Code:   http.StatusConflict,
-// 		Status: "Conflict",
-// 		Data:   message,
+// func (Response) NotFound(ctx *gin.Context, message string) {
+// 	ctx.JSON(http.StatusNotFound, gin.H{
+// 		"code":   http.StatusNotFound,
+// 		"status": "Not Found",
+// 		"data":   message,
 // 	})
 // }
 
-// func UnprocessableEntityResponse(ctx *gin.Context, err error) {
-// 	ctx.JSON(http.StatusUnprocessableEntity, Response{
-// 		Code:   http.StatusUnprocessableEntity,
-// 		Status: "Unprocessable Entity",
-// 		Data:   err.Error(),
+// func (Response) Conflict(ctx *gin.Context, message string) {
+// 	ctx.JSON(http.StatusConflict, gin.H{
+// 		"code":   http.StatusConflict,
+// 		"status": "Conflict",
+// 		"data":   message,
 // 	})
 // }
 
-// func TooManyRequestsResponse(ctx *gin.Context, message string) {
-// 	ctx.JSON(http.StatusTooManyRequests, Response{
-// 		Code:   http.StatusTooManyRequests,
-// 		Status: "Too Many Requests",
-// 		Data:   message,
+// func (Response) UnprocessableEntity(ctx *gin.Context, err error) {
+// 	ctx.JSON(http.StatusUnprocessableEntity, gin.H{
+// 		"code":   http.StatusUnprocessableEntity,
+// 		"status": "Unprocessable Entity",
+// 		"data":   err.Error(),
+// 	})
+// }
+
+// func (Response) TooManyRequests(ctx *gin.Context, message string) {
+// 	ctx.JSON(http.StatusTooManyRequests, gin.H{
+// 		"code":   http.StatusTooManyRequests,
+// 		"status": "Too Many Requests",
+// 		"data":   message,
 // 	})
 // }
