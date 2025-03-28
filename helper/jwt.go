@@ -1,14 +1,13 @@
 package helper
 
 import (
+	"learn_o_auth-project/helper/responsejson"
 	"os"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 )
-
-var response = Response{}
 
 func createToken(ctx *gin.Context, id int, secret string, duration time.Duration, cookieName string) error {
 	claims := jwt.MapClaims{
@@ -19,7 +18,7 @@ func createToken(ctx *gin.Context, id int, secret string, duration time.Duration
 
 	token, err := jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString([]byte(secret))
 	if err != nil {
-		response.InternalServerError(ctx, err)
+		responsejson.InternalServerError(ctx, err)
 		return err
 	}
 
@@ -64,20 +63,20 @@ func AuthMiddleware(ctx *gin.Context) {
 		if refresToken != "" && refreshToken.Valid {
 			claims, ok := refreshToken.Claims.(jwt.MapClaims)
 			if !ok {
-				response.Unauthorized(ctx)
+				responsejson.Unauthorized(ctx)
 				ctx.Abort()
 				return
 			}
 			idFloat, ok := claims["id"].(float64)
 			if !ok {
-				response.Unauthorized(ctx)
+				responsejson.Unauthorized(ctx)
 				ctx.Abort()
 				return
 			}
 			id := int(idFloat)
 			CreateAccessToken(ctx, id)
 		} else {
-			response.Unauthorized(ctx)
+			responsejson.Unauthorized(ctx)
 			ctx.Abort()
 			return
 		}
@@ -104,7 +103,7 @@ func GuestMiddleware(ctx *gin.Context) {
 	})
 
 	if (err == nil && accessToken != "" && token.Valid) || (err == nil && refresToken != "" && refreshToken.Valid) {
-		response.Forbidden(ctx, "You are already logged in")
+		responsejson.Forbidden(ctx, "You are already logged in")
 		ctx.Abort()
 		return
 	}

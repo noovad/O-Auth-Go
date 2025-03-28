@@ -4,12 +4,12 @@ import (
 	"learn_o_auth-project/api/service"
 	"learn_o_auth-project/config"
 	"learn_o_auth-project/helper"
+	"learn_o_auth-project/helper/responsejson"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 )
 
-var response = helper.Response{}
 type UsersAuthController struct {
 	usersService service.UsersService
 	authService  service.AuthService
@@ -41,13 +41,13 @@ func (controller *UsersAuthController) HandleGoogleCallback(ctx *gin.Context) {
 
 	user, err := controller.authService.AuthenticateWithGoogle(ctx, state, code)
 	if err != nil {
-		helper.Response{}.InternalServerError(ctx, err)
+		responsejson.InternalServerError(ctx, err)
 		return
 	}
 
 	err = controller.authService.CreateTokens(ctx, user.Id)
 	if err != nil {
-		response.InternalServerError(ctx, err)
+		responsejson.InternalServerError(ctx, err)
 		return
 	}
 
