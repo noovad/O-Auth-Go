@@ -1,8 +1,10 @@
 package controller
 
 import (
+	"errors"
 	"go_auth-project/api/service"
 	"go_auth-project/config"
+	"go_auth-project/data"
 	"go_auth-project/helper"
 	"go_auth-project/helper/responsejson"
 	"net/http"
@@ -22,8 +24,56 @@ func NewUsersAuthController(userService service.UsersService, authService servic
 	}
 }
 
-func HandleGoogleLogin(ctx *gin.Context) {
-	state := helper.GenerateState()
+func (controller *UsersAuthController) HandleSignUp(ctx *gin.Context) {
+	email, err := helper.VerifySignedToken(ctx)
+	if err != nil {
+		if errors.Is(err, helper.ErrInvalidCredentials) {
+			responsejson.Unauthorized(ctx)
+			return
+		}
+		responsejson.InternalServerError(ctx, err)
+		return
+	}
+
+	var user data.CreateUsersRequest
+	user.Email = email
+
+	if err := ctx.ShouldBindJSON(&user); err != nil {
+		responsejson.BadRequest(ctx, err)
+		return
+	}
+
+	userId, err := controller.usersService.CreateAndReturnID(user)
+	if err != nil {
+		if errors.Is(err, helper.ErrFailedValidation) {
+			responsejson.BadRequest(ctx, err)
+			return
+		}
+
+		responsejson.InternalServerError(ctx, err)
+		return
+	}
+
+	err = controller.authService.CreateTokens(ctx, userId)
+	if err != nil {
+		responsejson.InternalServerError(ctx, err)
+		return
+	}
+
+	responsejson.Success(ctx, "Successfully signed up", gin.H{
+		"user":    user,
+		"message": "You have been signed up successfully",
+	})
+}
+
+func HandleGoogleAuth(ctx *gin.Context) {
+	action := ctx.Query("action")
+	if action != "signup" {
+		action = "login"
+	}
+
+	state := helper.GenerateState() + "|" + action
+
 	ctx.SetCookie("oauthstate", state, 60, "/", "", false, true)
 
 	url := config.GoogleOauthConfig.AuthCodeURL(state)
@@ -32,16 +82,38 @@ func HandleGoogleLogin(ctx *gin.Context) {
 
 func HandleLogOut(c *gin.Context) {
 	helper.DeleteTokens(c)
-	c.Redirect(http.StatusTemporaryRedirect, "/")
+
+	responsejson.Success(c, "Successfully logged out", gin.H{
+		"message": "You have been logged out successfully",
+	})
 }
 
-func (controller *UsersAuthController) HandleGoogleCallback(ctx *gin.Context) {
+func (controller *UsersAuthController) HandleGoogleAuthCallback(ctx *gin.Context) {
 	state := ctx.Query("state")
 	code := ctx.Query("code")
 
-	user, err := controller.authService.AuthenticateWithGoogle(ctx, state, code)
+	user, action, err := controller.authService.AuthenticateWithGoogle(ctx, state, code)
+
 	if err != nil {
+		if errors.Is(err, helper.ErrUserNotFound) && action == "signup" {
+			token := helper.CreateSignedToken(ctx, user.Email)
+			responsejson.Success(ctx, "Redirecting to sign-up page", gin.H{
+				"token": token,
+			})
+			return
+		}
+
+		if errors.Is(err, helper.ErrUserNotFound) {
+			responsejson.Unauthorized(ctx)
+			return
+		}
+
 		responsejson.InternalServerError(ctx, err)
+		return
+	}
+
+	if action == "signup" {
+		responsejson.Conflict(ctx, "User already exists, please log in instead")
 		return
 	}
 
@@ -51,5 +123,8 @@ func (controller *UsersAuthController) HandleGoogleCallback(ctx *gin.Context) {
 		return
 	}
 
-	ctx.Redirect(http.StatusFound, "/home")
+	responsejson.Success(ctx, "Successfully logged in", gin.H{
+		"user":    user,
+		"message": "You have been logged in successfully",
+	})
 }

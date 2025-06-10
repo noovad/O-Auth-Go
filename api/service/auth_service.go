@@ -4,18 +4,19 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"io"
 	"go_auth-project/config"
 	"go_auth-project/data"
 	"go_auth-project/helper"
+	"io"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 )
 
 type AuthService interface {
-	AuthenticateWithGoogle(ctx *gin.Context, state string, code string) (data.UserResponse, error)
-	CreateTokens(ctx *gin.Context, userId int) error
+	AuthenticateWithGoogle(ctx *gin.Context, state string, code string) (data.UserResponse, string, error)
+	CreateTokens(ctx *gin.Context, userId string) error
 }
 
 type authService struct {
@@ -26,38 +27,54 @@ func NewAuthService(usersService UsersService) AuthService {
 	return &authService{usersService: usersService}
 }
 
-func (s *authService) AuthenticateWithGoogle(ctx *gin.Context, state string, code string) (data.UserResponse, error) {
+func (s *authService) AuthenticateWithGoogle(ctx *gin.Context, state string, code string) (data.UserResponse, string, error) {
 	cookieState, err := ctx.Cookie("oauthstate")
-	if err != nil || state != cookieState {
-		return data.UserResponse{}, helper.ErrInvalidOAuthState
+
+	parts := strings.SplitN(state, "|", 2)
+	if len(parts) != 2 {
+		return data.UserResponse{}, "", helper.ErrInvalidOAuthState
 	}
+	parsedState, action := parts[0], parts[1]
+
+	if err != nil || parsedState != strings.Split(cookieState, "|")[0] {
+		return data.UserResponse{}, "", helper.ErrInvalidOAuthState
+	}
+
 	ctx.SetCookie("oauthstate", "", -1, "/", "", false, true)
 
 	content, err := s.getUserInfoFromGoogle(code)
 	if err != nil {
-		return data.UserResponse{}, err
+		return data.UserResponse{}, "", err
 	}
 
 	var loginAccount data.GoogleResponse
 	if err := json.Unmarshal(content, &loginAccount); err != nil {
-		return data.UserResponse{}, err
+		return data.UserResponse{}, "", err
 	}
 
 	user, err := s.usersService.FindByEmail(loginAccount.Email)
-	if errors.Is(err, helper.ErrUserNotFound) {
-		userId, err := s.usersService.CreateAndReturnID(data.CreateUsersRequest{
-			Username: loginAccount.Name,
-			Email:    loginAccount.Email,
-		})
-		if err != nil {
-			return data.UserResponse{}, err
+
+	switch action {
+	case "login":
+		if errors.Is(err, helper.ErrUserNotFound) {
+			return data.UserResponse{}, action, helper.ErrUserNotFound
 		}
-		user = data.UserResponse{Id: userId, Email: loginAccount.Email}
-	} else if err != nil {
-		return data.UserResponse{}, err
+		if err != nil {
+			return data.UserResponse{}, action, err
+		}
+
+	case "signup":
+		if errors.Is(err, helper.ErrUserNotFound) {
+			return data.UserResponse{
+				Email: loginAccount.Email,
+			}, action, helper.ErrUserNotFound
+		}
+		if err != nil {
+			return data.UserResponse{}, action, err
+		}
 	}
 
-	return user, nil
+	return user, action, nil
 }
 
 func (s *authService) getUserInfoFromGoogle(code string) ([]byte, error) {
@@ -66,10 +83,6 @@ func (s *authService) getUserInfoFromGoogle(code string) ([]byte, error) {
 		return nil, helper.ErrCodeExchangeFailed(err)
 	}
 
-	// Note: This function can be improved by (Suggested by ChatGPT):
-	// - Using `http.Client` with a timeout to prevent indefinite hangs.
-	// - Sending the access token via `Authorization` header instead of query parameters for better security.
-	// - Checking the HTTP response status code before reading the body.
 	response, err := http.Get("https://www.googleapis.com/oauth2/v2/userinfo?access_token=" + token.AccessToken)
 	if err != nil {
 		return nil, helper.ErrFailedGetUserInfo(err)
@@ -84,7 +97,7 @@ func (s *authService) getUserInfoFromGoogle(code string) ([]byte, error) {
 	return content, nil
 }
 
-func (s *authService) CreateTokens(ctx *gin.Context, userId int) error {
+func (s *authService) CreateTokens(ctx *gin.Context, userId string) error {
 	if err := helper.CreateAccessToken(ctx, userId); err != nil {
 		return err
 	}

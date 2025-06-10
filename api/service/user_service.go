@@ -10,7 +10,7 @@ import (
 )
 
 type UsersService interface {
-	CreateAndReturnID(user data.CreateUsersRequest) (int, error)
+	CreateAndReturnID(user data.CreateUsersRequest) (string, error)
 	FindByEmail(Email string) (data.UserResponse, error)
 }
 
@@ -26,15 +26,18 @@ type UsersServiceImpl struct {
 	Validate        *validator.Validate
 }
 
-func (t *UsersServiceImpl) CreateAndReturnID(user data.CreateUsersRequest) (int, error) {
+func (t *UsersServiceImpl) CreateAndReturnID(user data.CreateUsersRequest) (string, error) {
 	err := t.Validate.Struct(user)
 	if err != nil {
-		return 0, helper.ErrFailedValidationWrap(err)
+		return "", helper.ErrFailedValidationWrap(err)
 	}
 
 	userModel := model.Users{
 		Username: user.Username,
 		Email:    user.Email,
+		Name:     user.Name,
+		Password: user.Password,
+		AvatarType: user.AvatarType,
 	}
 
 	return t.UsersRepository.SaveAndReturnID(userModel)

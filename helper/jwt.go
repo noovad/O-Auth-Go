@@ -2,6 +2,7 @@ package helper
 
 import (
 	"go_auth-project/helper/responsejson"
+
 	"os"
 	"time"
 
@@ -9,7 +10,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-func createToken(ctx *gin.Context, id int, secret string, duration time.Duration, cookieName string) error {
+func createToken(ctx *gin.Context, id string, secret string, duration time.Duration, cookieName string) error {
 	claims := jwt.MapClaims{
 		"id":  id,
 		"exp": time.Now().Add(duration).Unix(),
@@ -26,19 +27,42 @@ func createToken(ctx *gin.Context, id int, secret string, duration time.Duration
 	return nil
 }
 
-func CreateAccessToken(ctx *gin.Context, id int) error {
+func CreateAccessToken(ctx *gin.Context, id string) error {
 	secret := os.Getenv("GENERATE_TOKEN_SECRET")
 	return createToken(ctx, id, secret, time.Minute*30, "Authorization")
 }
 
-func CreateRefreshToken(ctx *gin.Context, id int) error {
+func CreateRefreshToken(ctx *gin.Context, id string) error {
 	secret := os.Getenv("GENERATE_REFRESH_TOKEN_SECRET")
 	return createToken(ctx, id, secret, time.Hour*24*7, "Refresh-token")
+}
+
+func CreateSignedToken(ctx *gin.Context, email string) error {
+	secret := os.Getenv("GENERATE_REFRESH_TOKEN_SECRET")
+	return createToken(ctx, email, secret, time.Minute*1, "Signed-token")
 }
 
 func DeleteTokens(ctx *gin.Context) {
 	ctx.SetCookie("Refresh-token", "", -1, "/", "", false, true)
 	ctx.SetCookie("Authorization", "", -1, "/", "", false, true)
+}
+
+func VerifySignedToken(ctx *gin.Context) (string, error) {
+	signedToken, err := ctx.Cookie("Signed-token")
+	if err != nil {
+		return "", err
+	}
+
+	secret := os.Getenv("GENERATE_REFRESH_TOKEN_SECRET")
+	parsedToken, err := jwt.Parse(signedToken, func(token *jwt.Token) (interface{}, error) {
+		return []byte(secret), nil
+	})
+
+	if claims, ok := parsedToken.Claims.(jwt.MapClaims); ok && parsedToken.Valid {
+		return claims["id"].(string), nil
+	} else {
+		return "", ErrInvalidCredentials
+	}
 }
 
 // Note: This middleware can be enhanced by:
@@ -67,14 +91,13 @@ func AuthMiddleware(ctx *gin.Context) {
 				ctx.Abort()
 				return
 			}
-			idFloat, ok := claims["id"].(float64)
+			id, ok := claims["id"]
 			if !ok {
 				responsejson.Unauthorized(ctx)
 				ctx.Abort()
 				return
 			}
-			id := int(idFloat)
-			CreateAccessToken(ctx, id)
+			CreateAccessToken(ctx, id.(string))
 		} else {
 			responsejson.Unauthorized(ctx)
 			ctx.Abort()

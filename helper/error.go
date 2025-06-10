@@ -6,10 +6,10 @@ import (
 )
 
 var (
-	ErrUserNotFound      = errors.New("user not found")
-	ErrInvalidOAuthState = errors.New("invalid oauth state")
-	ErrFailedToGetEmail  = errors.New("failed to get email from Google response")
-	ErrFailedValidation  = errors.New("validation failed")
+	ErrInvalidCredentials = errors.New("invalid credentials")
+	ErrUserNotFound       = errors.New("user not found")
+	ErrInvalidOAuthState  = errors.New("invalid oauth state")
+	ErrFailedValidation   = errors.New("validation failed")
 
 	ErrCodeExchangeFailed = func(err error) error {
 		return fmt.Errorf("code exchange failed: %s", err.Error())

@@ -9,7 +9,7 @@ import (
 )
 
 type UsersRepository interface {
-	SaveAndReturnID(user model.Users) (int, error)
+	SaveAndReturnID(user model.Users) (string, error)
 	FindByEmail(Email string) (model.Users, error)
 }
 
@@ -21,10 +21,10 @@ type UsersRepositoryImpl struct {
 	Db *gorm.DB
 }
 
-func (r *UsersRepositoryImpl) SaveAndReturnID(user model.Users) (int, error) {
+func (r *UsersRepositoryImpl) SaveAndReturnID(user model.Users) (string, error) {
 	result := r.Db.Create(&user)
 	if result.Error != nil {
-		return 0, result.Error
+		return "", result.Error
 	}
 	return user.Id, nil
 }
