@@ -2,7 +2,7 @@ run:
 	air -c .air.toml
 
 dev:
-	go run cmd/main.go
+	go run main.go
 
 clean:
 	rm -rf tmp/
