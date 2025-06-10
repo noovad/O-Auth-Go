@@ -1,10 +1,10 @@
 package service
 
 import (
-	"learn_o_auth-project/api/repository"
-	"learn_o_auth-project/data"
-	"learn_o_auth-project/helper"
-	"learn_o_auth-project/model"
+	"go_auth-project/api/repository"
+	"go_auth-project/data"
+	"go_auth-project/helper"
+	"go_auth-project/model"
 
 	"github.com/go-playground/validator/v10"
 )

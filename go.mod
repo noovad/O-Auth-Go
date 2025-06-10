@@ -1,4 +1,4 @@
-module learn_o_auth-project
+module go_auth-project
 
 go 1.24.0
 

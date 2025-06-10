@@ -1,10 +1,10 @@
 package router
 
 import (
-	"learn_o_auth-project/api"
-	"learn_o_auth-project/api/controller"
-	"learn_o_auth-project/helper"
-	"learn_o_auth-project/presentation"
+	"go_auth-project/api"
+	"go_auth-project/api/controller"
+	"go_auth-project/helper"
+	"go_auth-project/presentation"
 
 	"github.com/gin-gonic/gin"
 )

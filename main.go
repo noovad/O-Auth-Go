@@ -1,9 +1,9 @@
 package main
 
 import (
-	"learn_o_auth-project/config"
-	"learn_o_auth-project/model"
-	"learn_o_auth-project/router"
+	"go_auth-project/config"
+	"go_auth-project/model"
+	"go_auth-project/router"
 	"log"
 	"net/http"
 	"os"

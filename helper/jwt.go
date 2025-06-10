@@ -1,7 +1,7 @@
 package helper
 
 import (
-	"learn_o_auth-project/helper/responsejson"
+	"go_auth-project/helper/responsejson"
 	"os"
 	"time"
 

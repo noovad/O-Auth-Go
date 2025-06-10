@@ -2,8 +2,8 @@ package repository
 
 import (
 	"errors"
-	"learn_o_auth-project/helper"
-	"learn_o_auth-project/model"
+	"go_auth-project/helper"
+	"go_auth-project/model"
 
 	"gorm.io/gorm"
 )

@@ -5,10 +5,10 @@
 package api
 
 import (
-	"learn_o_auth-project/api/controller"
-	"learn_o_auth-project/api/repository"
-	"learn_o_auth-project/api/service"
-	"learn_o_auth-project/config"
+	"go_auth-project/api/controller"
+	"go_auth-project/api/repository"
+	"go_auth-project/api/service"
+	"go_auth-project/config"
 
 	"github.com/google/wire"
 )

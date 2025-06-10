@@ -5,9 +5,9 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
-	"learn_o_auth-project/config"
-	"learn_o_auth-project/data"
-	"learn_o_auth-project/helper"
+	"go_auth-project/config"
+	"go_auth-project/data"
+	"go_auth-project/helper"
 	"net/http"
 
 	"github.com/gin-gonic/gin"

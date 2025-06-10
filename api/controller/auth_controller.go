@@ -1,10 +1,10 @@
 package controller
 
 import (
-	"learn_o_auth-project/api/service"
-	"learn_o_auth-project/config"
-	"learn_o_auth-project/helper"
-	"learn_o_auth-project/helper/responsejson"
+	"go_auth-project/api/service"
+	"go_auth-project/config"
+	"go_auth-project/helper"
+	"go_auth-project/helper/responsejson"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
