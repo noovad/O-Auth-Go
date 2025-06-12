@@ -9,6 +9,7 @@ import (
 	"go_auth-project/helper"
 	"io"
 	"net/http"
+	"os"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -29,19 +30,26 @@ func NewAuthService(usersService UsersService) AuthService {
 }
 
 func (s *authService) AuthenticateWithGoogle(ctx *gin.Context, state string, code string) (data.UserResponse, string, error) {
-	cookieState, err := ctx.Cookie("oauthstate")
+	cookieState, err := ctx.Cookie("Oauth-State") // Retrieve the state from the cookie
+	if err != nil {
+		if errors.Is(err, http.ErrNoCookie) {
+			return data.UserResponse{}, "", helper.ErrOAuthStateNotFound
+		}
+		return data.UserResponse{}, "", err
+	}
 
 	parts := strings.SplitN(state, "|", 2)
 	if len(parts) != 2 {
 		return data.UserResponse{}, "", helper.ErrInvalidOAuthState
 	}
+
 	parsedState, action := parts[0], parts[1]
 
-	if err != nil || parsedState != strings.Split(cookieState, "|")[0] {
+	if parsedState != strings.Split(cookieState, "|")[0] {
 		return data.UserResponse{}, "", helper.ErrInvalidOAuthState
 	}
 
-	ctx.SetCookie("oauthstate", "", -1, "/", "", false, true)
+	ctx.SetCookie("Oauth-State", "", -1, "/", os.Getenv("FRONTEND_DOMAIN"), false, true)
 
 	content, err := s.getUserInfoFromGoogle(code)
 	if err != nil {

@@ -10,6 +10,7 @@ var (
 	ErrUserNotFound       = errors.New("user not found")
 	ErrInvalidOAuthState  = errors.New("invalid oauth state")
 	ErrFailedValidation   = errors.New("validation failed")
+	ErrOAuthStateNotFound = errors.New("oauth state not found")
 
 	ErrCodeExchangeFailed = func(err error) error {
 		return fmt.Errorf("code exchange failed: %s", err.Error())

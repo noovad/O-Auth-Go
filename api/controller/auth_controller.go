@@ -7,6 +7,8 @@ import (
 	"go_auth-project/data"
 	"go_auth-project/helper"
 	"go_auth-project/helper/responsejson"
+	"net/http"
+	"os"
 
 	"github.com/gin-gonic/gin"
 )
@@ -102,7 +104,7 @@ func HandleGoogleAuth(ctx *gin.Context) {
 
 	state := helper.GenerateState() + "|" + action
 
-	ctx.SetCookie("oauthstate", state, 60, "/", "", false, true)
+	ctx.SetCookie("Oauth-State", state, 60, "/", os.Getenv("FRONTEND_DOMAIN"), false, true)
 
 	url := config.GoogleOauthConfig.AuthCodeURL(state)
 	responsejson.Success(ctx, "Redirecting to Google OAuth", gin.H{
@@ -153,8 +155,5 @@ func (controller *UsersAuthController) HandleGoogleAuthCallback(ctx *gin.Context
 		return
 	}
 
-	responsejson.Success(ctx, "Successfully logged in", gin.H{
-		"user":    user,
-		"message": "You have been logged in successfully",
-	})
+	ctx.Redirect(http.StatusPermanentRedirect, os.Getenv("FRONTEND_BASE_URL")+"/")
 }

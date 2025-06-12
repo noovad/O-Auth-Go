@@ -23,7 +23,7 @@ func createToken(ctx *gin.Context, id string, secret string, duration time.Durat
 		return err
 	}
 
-	ctx.SetCookie(cookieName, token, int(duration.Seconds()), "/", "", false, true)
+	ctx.SetCookie(cookieName, token, int(duration.Seconds()), "/", os.Getenv("FRONTEND_DOMAIN"), false, true)
 	return nil
 }
 
@@ -43,8 +43,8 @@ func CreateSignedToken(ctx *gin.Context, email string) error {
 }
 
 func DeleteTokens(ctx *gin.Context) {
-	ctx.SetCookie("Refresh-token", "", -1, "/", "", false, true)
-	ctx.SetCookie("Authorization", "", -1, "/", "", false, true)
+	ctx.SetCookie("Refresh-token", "", -1, "/", os.Getenv("FRONTEND_DOMAIN"), false, true)
+	ctx.SetCookie("Authorization", "", -1, "/", os.Getenv("FRONTEND_DOMAIN"), false, true)
 }
 
 func VerifySignedToken(ctx *gin.Context) (string, error) {
