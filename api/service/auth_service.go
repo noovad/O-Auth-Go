@@ -12,12 +12,13 @@ import (
 	"os"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 type AuthService interface {
 	AuthenticateWithGoogle(ctx *gin.Context, state string, code string) (data.UserResponse, error)
-	AuthenticateWithPassword(ctx *gin.Context, user data.LoginRequest) (string, error)
-	CreateTokens(ctx *gin.Context, userId string) error
+	AuthenticateWithUsername(ctx *gin.Context, user data.LoginRequest) (uuid.UUID, error)
+	CreateTokens(ctx *gin.Context, userId uuid.UUID) error
 }
 
 type authService struct {
@@ -66,14 +67,14 @@ func (s *authService) AuthenticateWithGoogle(ctx *gin.Context, state string, cod
 	return user, nil
 }
 
-func (s *authService) AuthenticateWithPassword(ctx *gin.Context, user data.LoginRequest) (string, error) {
-	existingUser, err := s.usersService.FindByEmail(user.Email)
+func (s *authService) AuthenticateWithUsername(ctx *gin.Context, user data.LoginRequest) (uuid.UUID, error) {
+	existingUser, err := s.usersService.FindByUsername(user.Username)
 	if err != nil {
-		return "", helper.ErrInvalidCredentials
+		return uuid.Nil, helper.ErrInvalidCredentials
 	}
 
 	if !helper.CheckPasswordHash(user.Password, existingUser.Password) {
-		return "", helper.ErrInvalidCredentials
+		return uuid.Nil, helper.ErrInvalidCredentials
 	}
 
 	return existingUser.Id, nil
@@ -99,9 +100,9 @@ func (s *authService) getUserInfoFromGoogle(code string) ([]byte, error) {
 	return content, nil
 }
 
-func (s *authService) CreateTokens(ctx *gin.Context, userId string) error {
-	if err := helper.CreateAccessToken(ctx, userId); err != nil {
+func (s *authService) CreateTokens(ctx *gin.Context, userId uuid.UUID) error {
+	if err := helper.CreateAccessToken(ctx, userId.String()); err != nil {
 		return err
 	}
-	return helper.CreateRefreshToken(ctx, userId)
+	return helper.CreateRefreshToken(ctx, userId.String())
 }

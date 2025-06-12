@@ -6,6 +6,7 @@ import (
 )
 
 var (
+	ErrInvalidUUID        = errors.New("invalid UUID format")
 	ErrInvalidCredentials = errors.New("invalid credentials")
 	ErrUserNotFound       = errors.New("user not found")
 	ErrInvalidOAuthState  = errors.New("invalid oauth state")

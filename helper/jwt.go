@@ -47,7 +47,7 @@ func DeleteTokens(ctx *gin.Context) {
 	ctx.SetCookie("Authorization", "", -1, "/", os.Getenv("FRONTEND_DOMAIN"), false, true)
 }
 
-func VerifySignedToken(ctx *gin.Context, email string) (error) {
+func VerifySignedToken(ctx *gin.Context, email string) error {
 	signedToken, err := ctx.Cookie("Signed-token")
 	if err != nil {
 		return err
@@ -59,7 +59,7 @@ func VerifySignedToken(ctx *gin.Context, email string) (error) {
 	})
 
 	if claims, ok := parsedToken.Claims.(jwt.MapClaims); ok && parsedToken.Valid {
-		if claims["email"] != email {
+		if claims["id"] != email {
 			return ErrInvalidCredentials
 		}
 		return nil
@@ -74,13 +74,16 @@ func VerifySignedToken(ctx *gin.Context, email string) (error) {
 // - Implementing role-based access control (RBAC) for different user permissions.
 // - Storing the authenticated user in the request context using ctx.Set("user", user) for easier access in handlers.
 func AuthMiddleware(ctx *gin.Context) {
+
 	accessToken, _ := ctx.Cookie("Authorization")
+
 	secret := os.Getenv("GENERATE_TOKEN_SECRET")
 	token, err := jwt.Parse(accessToken, func(token *jwt.Token) (any, error) {
 		return []byte(secret), nil
 	})
 
 	refresToken, _ := ctx.Cookie("Refresh-token")
+
 	secretRefresh := os.Getenv("GENERATE_REFRESH_TOKEN_SECRET")
 	refreshToken, _ := jwt.Parse(refresToken, func(token *jwt.Token) (any, error) {
 		return []byte(secretRefresh), nil

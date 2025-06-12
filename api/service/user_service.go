@@ -7,11 +7,13 @@ import (
 	"go_auth-project/model"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/google/uuid"
 )
 
 type UsersService interface {
-	CreateAndReturnID(user data.CreateUsersRequest) (string, error)
+	CreateAndReturnID(user data.CreateUsersRequest) (uuid.UUID, error)
 	FindByEmail(Email string) (data.UserResponse, error)
+	FindByUsername(username string) (data.UserResponse, error)
 }
 
 func NewUsersServiceImpl(userRepository repository.UsersRepository, validate *validator.Validate) UsersService {
@@ -26,15 +28,15 @@ type UsersServiceImpl struct {
 	Validate        *validator.Validate
 }
 
-func (t *UsersServiceImpl) CreateAndReturnID(user data.CreateUsersRequest) (string, error) {
+func (t *UsersServiceImpl) CreateAndReturnID(user data.CreateUsersRequest) (uuid.UUID, error) {
 	err := t.Validate.Struct(user)
 	if err != nil {
-		return "", helper.ErrFailedValidationWrap(err)
+		return uuid.Nil, helper.ErrFailedValidationWrap(err)
 	}
 
 	hashPassword, err := helper.HashPassword(user.Password)
 	if err != nil {
-		return "", err
+		return uuid.Nil, err
 	}
 
 	userModel := model.Users{
@@ -58,5 +60,19 @@ func (t *UsersServiceImpl) FindByEmail(Email string) (data.UserResponse, error) 
 		Id:       userData.Id,
 		Username: userData.Username,
 		Email:    userData.Email,
+	}, nil
+}
+
+func (t *UsersServiceImpl) FindByUsername(username string) (data.UserResponse, error) {
+	userData, err := t.UsersRepository.FindByUsername(username)
+	if err != nil {
+		return data.UserResponse{}, err
+	}
+
+	return data.UserResponse{
+		Id:       userData.Id,
+		Username: userData.Username,
+		Email:    userData.Email,
+		Password: userData.Password,
 	}, nil
 }

@@ -51,7 +51,6 @@ func (controller *UsersAuthController) HandleSignUp(ctx *gin.Context) {
 			responsejson.BadRequest(ctx, err)
 			return
 		}
-
 		responsejson.InternalServerError(ctx, err)
 		return
 	}
@@ -75,7 +74,7 @@ func (controller *UsersAuthController) HandleLogin(ctx *gin.Context) {
 		return
 	}
 
-	userId, err := controller.authService.AuthenticateWithPassword(ctx, user)
+	userId, err := controller.authService.AuthenticateWithUsername(ctx, user)
 	if err != nil {
 		if errors.Is(err, helper.ErrInvalidCredentials) {
 			responsejson.Unauthorized(ctx)
@@ -128,13 +127,13 @@ func (controller *UsersAuthController) HandleGoogleAuthCallback(ctx *gin.Context
 			return
 		}
 
-		ctx.Redirect(http.StatusTemporaryRedirect, os.Getenv("FRONTEND_BASE_URL")+"/login?error=Failed to authenticate with Google")
+		ctx.Redirect(http.StatusPermanentRedirect, os.Getenv("FRONTEND_BASE_URL")+"/login?error=Failed to authenticate with Google")
 		return
 	}
 
 	err = controller.authService.CreateTokens(ctx, user.Id)
 	if err != nil {
-		ctx.Redirect(http.StatusTemporaryRedirect, os.Getenv("FRONTEND_BASE_URL")+"/login?error=Failed to authenticate with Google")
+		ctx.Redirect(http.StatusPermanentRedirect, os.Getenv("FRONTEND_BASE_URL")+"/login?error=Failed to authenticate with Google")
 		return
 	}
 
