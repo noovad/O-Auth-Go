@@ -26,7 +26,8 @@ func NewUsersAuthController(userService service.UsersService, authService servic
 }
 
 func (controller *UsersAuthController) HandleSignUp(ctx *gin.Context) {
-	email, err := helper.VerifySignedToken(ctx)
+	email := ctx.Query("email")
+	err := helper.VerifySignedToken(ctx, email)
 	if err != nil {
 		if errors.Is(err, helper.ErrInvalidCredentials) {
 			responsejson.Unauthorized(ctx)
@@ -97,13 +98,7 @@ func (controller *UsersAuthController) HandleLogin(ctx *gin.Context) {
 }
 
 func HandleGoogleAuth(ctx *gin.Context) {
-	action := ctx.Query("action")
-	if action != "signup" {
-		action = "login"
-	}
-
-	state := helper.GenerateState() + "|" + action
-
+	state := helper.GenerateState()
 	ctx.SetCookie("Oauth-State", state, 60, "/", os.Getenv("FRONTEND_DOMAIN"), false, true)
 
 	url := config.GoogleOauthConfig.AuthCodeURL(state)
@@ -124,34 +119,22 @@ func (controller *UsersAuthController) HandleGoogleAuthCallback(ctx *gin.Context
 	state := ctx.Query("state")
 	code := ctx.Query("code")
 
-	user, action, err := controller.authService.AuthenticateWithGoogle(ctx, state, code)
+	user, err := controller.authService.AuthenticateWithGoogle(ctx, state, code)
 
 	if err != nil {
-		if errors.Is(err, helper.ErrUserNotFound) && action == "signup" {
-			token := helper.CreateSignedToken(ctx, user.Email)
-			responsejson.Success(ctx, "Redirecting to sign-up page", gin.H{
-				"token": token,
-			})
-			return
-		}
-
 		if errors.Is(err, helper.ErrUserNotFound) {
-			responsejson.Unauthorized(ctx)
+			helper.CreateSignedToken(ctx, user.Email)
+			ctx.Redirect(http.StatusTemporaryRedirect, os.Getenv("FRONTEND_BASE_URL")+"/sign-up?email="+user.Email)
 			return
 		}
 
-		responsejson.InternalServerError(ctx, err)
-		return
-	}
-
-	if action == "signup" {
-		responsejson.Conflict(ctx, "User already exists, please log in instead")
+		ctx.Redirect(http.StatusTemporaryRedirect, os.Getenv("FRONTEND_BASE_URL")+"/login?error=Failed to authenticate with Google")
 		return
 	}
 
 	err = controller.authService.CreateTokens(ctx, user.Id)
 	if err != nil {
-		responsejson.InternalServerError(ctx, err)
+		ctx.Redirect(http.StatusTemporaryRedirect, os.Getenv("FRONTEND_BASE_URL")+"/login?error=Failed to authenticate with Google")
 		return
 	}
 

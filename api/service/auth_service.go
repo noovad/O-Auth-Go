@@ -10,13 +10,12 @@ import (
 	"io"
 	"net/http"
 	"os"
-	"strings"
 
 	"github.com/gin-gonic/gin"
 )
 
 type AuthService interface {
-	AuthenticateWithGoogle(ctx *gin.Context, state string, code string) (data.UserResponse, string, error)
+	AuthenticateWithGoogle(ctx *gin.Context, state string, code string) (data.UserResponse, error)
 	AuthenticateWithPassword(ctx *gin.Context, user data.LoginRequest) (string, error)
 	CreateTokens(ctx *gin.Context, userId string) error
 }
@@ -29,61 +28,42 @@ func NewAuthService(usersService UsersService) AuthService {
 	return &authService{usersService: usersService}
 }
 
-func (s *authService) AuthenticateWithGoogle(ctx *gin.Context, state string, code string) (data.UserResponse, string, error) {
-	cookieState, err := ctx.Cookie("Oauth-State") // Retrieve the state from the cookie
+func (s *authService) AuthenticateWithGoogle(ctx *gin.Context, state string, code string) (data.UserResponse, error) {
+	cookieState, err := ctx.Cookie("Oauth-State")
 	if err != nil {
 		if errors.Is(err, http.ErrNoCookie) {
-			return data.UserResponse{}, "", helper.ErrOAuthStateNotFound
+			return data.UserResponse{}, helper.ErrOAuthStateNotFound
 		}
-		return data.UserResponse{}, "", err
+		return data.UserResponse{}, err
 	}
 
-	parts := strings.SplitN(state, "|", 2)
-	if len(parts) != 2 {
-		return data.UserResponse{}, "", helper.ErrInvalidOAuthState
-	}
-
-	parsedState, action := parts[0], parts[1]
-
-	if parsedState != strings.Split(cookieState, "|")[0] {
-		return data.UserResponse{}, "", helper.ErrInvalidOAuthState
+	if state != cookieState {
+		return data.UserResponse{}, helper.ErrInvalidOAuthState
 	}
 
 	ctx.SetCookie("Oauth-State", "", -1, "/", os.Getenv("FRONTEND_DOMAIN"), false, true)
 
 	content, err := s.getUserInfoFromGoogle(code)
 	if err != nil {
-		return data.UserResponse{}, "", err
+		return data.UserResponse{}, err
 	}
 
 	var loginAccount data.GoogleResponse
 	if err := json.Unmarshal(content, &loginAccount); err != nil {
-		return data.UserResponse{}, "", err
+		return data.UserResponse{}, err
 	}
 
 	user, err := s.usersService.FindByEmail(loginAccount.Email)
 
-	switch action {
-	case "login":
+	if err != nil {
 		if errors.Is(err, helper.ErrUserNotFound) {
-			return data.UserResponse{}, action, helper.ErrUserNotFound
+			user.Email = loginAccount.Email
+			return user, helper.ErrUserNotFound
 		}
-		if err != nil {
-			return data.UserResponse{}, action, err
-		}
-
-	case "signup":
-		if errors.Is(err, helper.ErrUserNotFound) {
-			return data.UserResponse{
-				Email: loginAccount.Email,
-			}, action, helper.ErrUserNotFound
-		}
-		if err != nil {
-			return data.UserResponse{}, action, err
-		}
+		return data.UserResponse{}, err
 	}
 
-	return user, action, nil
+	return user, nil
 }
 
 func (s *authService) AuthenticateWithPassword(ctx *gin.Context, user data.LoginRequest) (string, error) {

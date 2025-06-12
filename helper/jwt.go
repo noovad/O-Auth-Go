@@ -38,7 +38,7 @@ func CreateRefreshToken(ctx *gin.Context, id string) error {
 }
 
 func CreateSignedToken(ctx *gin.Context, email string) error {
-	secret := os.Getenv("GENERATE_REFRESH_TOKEN_SECRET")
+	secret := os.Getenv("GENERATE_SIGNING_TOKEN_SECRET")
 	return createToken(ctx, email, secret, time.Minute*1, "Signed-token")
 }
 
@@ -47,21 +47,24 @@ func DeleteTokens(ctx *gin.Context) {
 	ctx.SetCookie("Authorization", "", -1, "/", os.Getenv("FRONTEND_DOMAIN"), false, true)
 }
 
-func VerifySignedToken(ctx *gin.Context) (string, error) {
+func VerifySignedToken(ctx *gin.Context, email string) (error) {
 	signedToken, err := ctx.Cookie("Signed-token")
 	if err != nil {
-		return "", err
+		return err
 	}
 
-	secret := os.Getenv("GENERATE_REFRESH_TOKEN_SECRET")
+	secret := os.Getenv("GENERATE_SIGNING_TOKEN_SECRET")
 	parsedToken, err := jwt.Parse(signedToken, func(token *jwt.Token) (interface{}, error) {
 		return []byte(secret), nil
 	})
 
 	if claims, ok := parsedToken.Claims.(jwt.MapClaims); ok && parsedToken.Valid {
-		return claims["id"].(string), nil
+		if claims["email"] != email {
+			return ErrInvalidCredentials
+		}
+		return nil
 	} else {
-		return "", ErrInvalidCredentials
+		return ErrInvalidCredentials
 	}
 }
 
