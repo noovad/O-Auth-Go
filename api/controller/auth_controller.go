@@ -7,7 +7,6 @@ import (
 	"go_auth-project/data"
 	"go_auth-project/helper"
 	"go_auth-project/helper/responsejson"
-	"net/http"
 
 	"github.com/gin-gonic/gin"
 )
@@ -66,6 +65,35 @@ func (controller *UsersAuthController) HandleSignUp(ctx *gin.Context) {
 	})
 }
 
+func (controller *UsersAuthController) HandleLogin(ctx *gin.Context) {
+	var user data.LoginRequest
+	if err := ctx.ShouldBindJSON(&user); err != nil {
+		responsejson.BadRequest(ctx, err)
+		return
+	}
+
+	userId, err := controller.authService.AuthenticateWithPassword(ctx, user)
+	if err != nil {
+		if errors.Is(err, helper.ErrInvalidCredentials) {
+			responsejson.Unauthorized(ctx)
+			return
+		}
+		responsejson.InternalServerError(ctx, err)
+		return
+	}
+
+	err = controller.authService.CreateTokens(ctx, userId)
+	if err != nil {
+		responsejson.InternalServerError(ctx, err)
+		return
+	}
+
+	responsejson.Success(ctx, "Successfully logged in", gin.H{
+		"user":    user,
+		"message": "You have been logged in successfully",
+	})
+}
+
 func HandleGoogleAuth(ctx *gin.Context) {
 	action := ctx.Query("action")
 	if action != "signup" {
@@ -77,7 +105,9 @@ func HandleGoogleAuth(ctx *gin.Context) {
 	ctx.SetCookie("oauthstate", state, 60, "/", "", false, true)
 
 	url := config.GoogleOauthConfig.AuthCodeURL(state)
-	ctx.Redirect(http.StatusTemporaryRedirect, url)
+	responsejson.Success(ctx, "Redirecting to Google OAuth", gin.H{
+		"url": url,
+	})
 }
 
 func HandleLogOut(c *gin.Context) {

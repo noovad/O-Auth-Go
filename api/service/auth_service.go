@@ -16,6 +16,7 @@ import (
 
 type AuthService interface {
 	AuthenticateWithGoogle(ctx *gin.Context, state string, code string) (data.UserResponse, string, error)
+	AuthenticateWithPassword(ctx *gin.Context, user data.LoginRequest) (string, error)
 	CreateTokens(ctx *gin.Context, userId string) error
 }
 
@@ -75,6 +76,19 @@ func (s *authService) AuthenticateWithGoogle(ctx *gin.Context, state string, cod
 	}
 
 	return user, action, nil
+}
+
+func (s *authService) AuthenticateWithPassword(ctx *gin.Context, user data.LoginRequest) (string, error) {
+	existingUser, err := s.usersService.FindByEmail(user.Email)
+	if err != nil {
+		return "", helper.ErrInvalidCredentials
+	}
+
+	if !helper.CheckPasswordHash(user.Password, existingUser.Password) {
+		return "", helper.ErrInvalidCredentials
+	}
+
+	return existingUser.Id, nil
 }
 
 func (s *authService) getUserInfoFromGoogle(code string) ([]byte, error) {

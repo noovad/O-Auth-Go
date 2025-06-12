@@ -14,7 +14,8 @@ func OAuthRoutes(r *gin.Engine) {
 	authController := api.InitializeAuthController()
 
 	r.POST("/sign-up", guestMiddleware, authController.HandleSignUp)
-	r.GET("/auth", guestMiddleware, controller.HandleGoogleAuth)
+	r.POST("/login", guestMiddleware, authController.HandleLogin)
 	r.GET("/logout", authMidleware, controller.HandleLogOut)
+	r.GET("/auth", guestMiddleware, controller.HandleGoogleAuth)
 	r.GET("/callback", authController.HandleGoogleAuthCallback)
 }

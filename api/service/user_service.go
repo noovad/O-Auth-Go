@@ -32,11 +32,16 @@ func (t *UsersServiceImpl) CreateAndReturnID(user data.CreateUsersRequest) (stri
 		return "", helper.ErrFailedValidationWrap(err)
 	}
 
+	hashPassword, err := helper.HashPassword(user.Password)
+	if err != nil {
+		return "", err
+	}
+
 	userModel := model.Users{
-		Username: user.Username,
-		Email:    user.Email,
-		Name:     user.Name,
-		Password: user.Password,
+		Username:   user.Username,
+		Email:      user.Email,
+		Name:       user.Name,
+		Password:   hashPassword,
 		AvatarType: user.AvatarType,
 	}
 

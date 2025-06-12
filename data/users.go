@@ -9,7 +9,8 @@ type CreateUsersRequest struct {
 }
 
 type UserResponse struct {
-	Id       string    `json:"id"`
+	Id       string `json:"id"`
 	Email    string `json:"email"`
 	Username string `json:"username"`
+	Password string `json:"password,omitempty"`
 }
