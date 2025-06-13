@@ -1,46 +1,56 @@
 package service
 
 import (
-	"learn_o_auth-project/api/repository"
-	"learn_o_auth-project/data"
-	"learn_o_auth-project/helper"
-	"learn_o_auth-project/model"
+	"go_auth-project/api/repository"
+	"go_auth-project/data"
+	"go_auth-project/helper"
+	"go_auth-project/model"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/google/uuid"
 )
 
-type UsersService interface {
-	CreateAndReturnID(user data.CreateUsersRequest) (int, error)
+type UserService interface {
+	CreateAndReturnID(user data.CreateUsersRequest) (uuid.UUID, error)
 	FindByEmail(Email string) (data.UserResponse, error)
+	FindByUsername(username string) (data.UserResponse, error)
 }
 
-func NewUsersServiceImpl(userRepository repository.UsersRepository, validate *validator.Validate) UsersService {
-	return &UsersServiceImpl{
+func NewUserServiceImpl(userRepository repository.UsersRepository, validate *validator.Validate) UserService {
+	return &UserServiceImpl{
 		UsersRepository: userRepository,
 		Validate:        validate,
 	}
 }
 
-type UsersServiceImpl struct {
+type UserServiceImpl struct {
 	UsersRepository repository.UsersRepository
 	Validate        *validator.Validate
 }
 
-func (t *UsersServiceImpl) CreateAndReturnID(user data.CreateUsersRequest) (int, error) {
+func (t *UserServiceImpl) CreateAndReturnID(user data.CreateUsersRequest) (uuid.UUID, error) {
 	err := t.Validate.Struct(user)
 	if err != nil {
-		return 0, helper.ErrFailedValidationWrap(err)
+		return uuid.Nil, helper.ErrFailedValidationWrap(err)
 	}
 
-	userModel := model.Users{
-		Username: user.Username,
-		Email:    user.Email,
+	hashPassword, err := helper.HashPassword(user.Password)
+	if err != nil {
+		return uuid.Nil, err
+	}
+
+	userModel := model.User{
+		Username:   user.Username,
+		Email:      user.Email,
+		Name:       user.Name,
+		Password:   hashPassword,
+		AvatarType: user.AvatarType,
 	}
 
 	return t.UsersRepository.SaveAndReturnID(userModel)
 }
 
-func (t *UsersServiceImpl) FindByEmail(Email string) (data.UserResponse, error) {
+func (t *UserServiceImpl) FindByEmail(Email string) (data.UserResponse, error) {
 	userData, err := t.UsersRepository.FindByEmail(Email)
 	if err != nil {
 		return data.UserResponse{}, err
@@ -50,5 +60,19 @@ func (t *UsersServiceImpl) FindByEmail(Email string) (data.UserResponse, error) 
 		Id:       userData.Id,
 		Username: userData.Username,
 		Email:    userData.Email,
+	}, nil
+}
+
+func (t *UserServiceImpl) FindByUsername(username string) (data.UserResponse, error) {
+	userData, err := t.UsersRepository.FindByUsername(username)
+	if err != nil {
+		return data.UserResponse{}, err
+	}
+
+	return data.UserResponse{
+		Id:       userData.Id,
+		Username: userData.Username,
+		Email:    userData.Email,
+		Password: userData.Password,
 	}, nil
 }

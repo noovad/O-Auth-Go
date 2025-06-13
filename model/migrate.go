@@ -3,5 +3,8 @@ package model
 import "gorm.io/gorm"
 
 func Migration(db *gorm.DB) error {
-	return db.Table("users").AutoMigrate(&Users{})
+	if err := db.AutoMigrate(&User{}); err != nil {
+		return err
+	}
+	return nil
 }

@@ -1,55 +1,141 @@
 package controller
 
 import (
-	"learn_o_auth-project/api/service"
-	"learn_o_auth-project/config"
-	"learn_o_auth-project/helper"
-	"learn_o_auth-project/helper/responsejson"
+	"errors"
+	"go_auth-project/api/service"
+	"go_auth-project/config"
+	"go_auth-project/data"
+	"go_auth-project/helper"
+	"go_auth-project/helper/responsejson"
 	"net/http"
+	"os"
 
 	"github.com/gin-gonic/gin"
 )
 
-type UsersAuthController struct {
-	usersService service.UsersService
+type AuthController struct {
+	usersService service.UserService
 	authService  service.AuthService
 }
 
-func NewUsersAuthController(userService service.UsersService, authService service.AuthService) *UsersAuthController {
-	return &UsersAuthController{
+func NewAuthController(userService service.UserService, authService service.AuthService) *AuthController {
+	return &AuthController{
 		usersService: userService,
 		authService:  authService,
 	}
 }
 
-func HandleGoogleLogin(ctx *gin.Context) {
+func (controller *AuthController) HandleSignUp(ctx *gin.Context) {
+	email := ctx.Query("email")
+	err := helper.VerifySignedToken(ctx, email)
+	if err != nil {
+		if errors.Is(err, helper.ErrInvalidCredentials) {
+			responsejson.Unauthorized(ctx)
+			return
+		}
+		responsejson.InternalServerError(ctx, err)
+		return
+	}
+
+	var user data.CreateUsersRequest
+	user.Email = email
+
+	if err := ctx.ShouldBindJSON(&user); err != nil {
+		responsejson.BadRequest(ctx, err)
+		return
+	}
+
+	userId, err := controller.usersService.CreateAndReturnID(user)
+	if err != nil {
+		if errors.Is(err, helper.ErrFailedValidation) {
+			responsejson.BadRequest(ctx, err)
+			return
+		}
+		responsejson.InternalServerError(ctx, err)
+		return
+	}
+
+	err = controller.authService.CreateTokens(ctx, userId)
+	if err != nil {
+		responsejson.InternalServerError(ctx, err)
+		return
+	}
+
+	responsejson.Success(ctx, "Successfully signed up", gin.H{
+		"user":    user,
+		"message": "You have been signed up successfully",
+	})
+}
+
+func (controller *AuthController) HandleLogin(ctx *gin.Context) {
+	var user data.LoginRequest
+	if err := ctx.ShouldBindJSON(&user); err != nil {
+		responsejson.BadRequest(ctx, err)
+		return
+	}
+
+	userId, err := controller.authService.AuthenticateWithUsername(ctx, user)
+	if err != nil {
+		if errors.Is(err, helper.ErrInvalidCredentials) {
+			responsejson.Unauthorized(ctx)
+			return
+		}
+		responsejson.InternalServerError(ctx, err)
+		return
+	}
+
+	err = controller.authService.CreateTokens(ctx, userId)
+	if err != nil {
+		responsejson.InternalServerError(ctx, err)
+		return
+	}
+
+	responsejson.Success(ctx, "Successfully logged in", gin.H{
+		"user":    user,
+		"message": "You have been logged in successfully",
+	})
+}
+
+func HandleGoogleAuth(ctx *gin.Context) {
 	state := helper.GenerateState()
-	ctx.SetCookie("oauthstate", state, 60, "/", "", false, true)
+	ctx.SetCookie("Oauth-State", state, 60, "/", os.Getenv("FRONTEND_DOMAIN"), false, true)
 
 	url := config.GoogleOauthConfig.AuthCodeURL(state)
-	ctx.Redirect(http.StatusTemporaryRedirect, url)
+	responsejson.Success(ctx, "Redirecting to Google OAuth", gin.H{
+		"url": url,
+	})
 }
 
 func HandleLogOut(c *gin.Context) {
 	helper.DeleteTokens(c)
-	c.Redirect(http.StatusTemporaryRedirect, "/")
+
+	responsejson.Success(c, "Successfully logged out", gin.H{
+		"message": "You have been logged out successfully",
+	})
 }
 
-func (controller *UsersAuthController) HandleGoogleCallback(ctx *gin.Context) {
+func (controller *AuthController) HandleGoogleAuthCallback(ctx *gin.Context) {
 	state := ctx.Query("state")
 	code := ctx.Query("code")
 
 	user, err := controller.authService.AuthenticateWithGoogle(ctx, state, code)
+
 	if err != nil {
-		responsejson.InternalServerError(ctx, err)
+		if errors.Is(err, helper.ErrUserNotFound) {
+			helper.CreateSignedToken(ctx, user.Email)
+			ctx.Redirect(http.StatusTemporaryRedirect, os.Getenv("FRONTEND_BASE_URL")+"/sign-up?email="+user.Email)
+			return
+		}
+
+		ctx.Redirect(http.StatusPermanentRedirect, os.Getenv("FRONTEND_BASE_URL")+"/login?error=Failed to authenticate with Google")
 		return
 	}
 
 	err = controller.authService.CreateTokens(ctx, user.Id)
 	if err != nil {
-		responsejson.InternalServerError(ctx, err)
+		ctx.Redirect(http.StatusPermanentRedirect, os.Getenv("FRONTEND_BASE_URL")+"/login?error=Failed to authenticate with Google")
 		return
 	}
 
-	ctx.Redirect(http.StatusFound, "/home")
+	ctx.Redirect(http.StatusPermanentRedirect, os.Getenv("FRONTEND_BASE_URL")+"/")
 }

@@ -1,7 +1,8 @@
 package helper
 
 import (
-	"learn_o_auth-project/helper/responsejson"
+	"go_auth-project/helper/responsejson"
+
 	"os"
 	"time"
 
@@ -9,7 +10,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-func createToken(ctx *gin.Context, id int, secret string, duration time.Duration, cookieName string) error {
+func createToken(ctx *gin.Context, id string, secret string, duration time.Duration, cookieName string) error {
 	claims := jwt.MapClaims{
 		"id":  id,
 		"exp": time.Now().Add(duration).Unix(),
@@ -22,23 +23,49 @@ func createToken(ctx *gin.Context, id int, secret string, duration time.Duration
 		return err
 	}
 
-	ctx.SetCookie(cookieName, token, int(duration.Seconds()), "/", "", false, true)
+	ctx.SetCookie(cookieName, token, int(duration.Seconds()), "/", os.Getenv("FRONTEND_DOMAIN"), false, true)
 	return nil
 }
 
-func CreateAccessToken(ctx *gin.Context, id int) error {
+func CreateAccessToken(ctx *gin.Context, id string) error {
 	secret := os.Getenv("GENERATE_TOKEN_SECRET")
 	return createToken(ctx, id, secret, time.Minute*30, "Authorization")
 }
 
-func CreateRefreshToken(ctx *gin.Context, id int) error {
+func CreateRefreshToken(ctx *gin.Context, id string) error {
 	secret := os.Getenv("GENERATE_REFRESH_TOKEN_SECRET")
 	return createToken(ctx, id, secret, time.Hour*24*7, "Refresh-token")
 }
 
+func CreateSignedToken(ctx *gin.Context, email string) error {
+	secret := os.Getenv("GENERATE_SIGNING_TOKEN_SECRET")
+	return createToken(ctx, email, secret, time.Minute*1, "Signed-token")
+}
+
 func DeleteTokens(ctx *gin.Context) {
-	ctx.SetCookie("Refresh-token", "", -1, "/", "", false, true)
-	ctx.SetCookie("Authorization", "", -1, "/", "", false, true)
+	ctx.SetCookie("Refresh-token", "", -1, "/", os.Getenv("FRONTEND_DOMAIN"), false, true)
+	ctx.SetCookie("Authorization", "", -1, "/", os.Getenv("FRONTEND_DOMAIN"), false, true)
+}
+
+func VerifySignedToken(ctx *gin.Context, email string) error {
+	signedToken, err := ctx.Cookie("Signed-token")
+	if err != nil {
+		return err
+	}
+
+	secret := os.Getenv("GENERATE_SIGNING_TOKEN_SECRET")
+	parsedToken, err := jwt.Parse(signedToken, func(token *jwt.Token) (interface{}, error) {
+		return []byte(secret), nil
+	})
+
+	if claims, ok := parsedToken.Claims.(jwt.MapClaims); ok && parsedToken.Valid {
+		if claims["id"] != email {
+			return ErrInvalidCredentials
+		}
+		return nil
+	} else {
+		return ErrInvalidCredentials
+	}
 }
 
 // Note: This middleware can be enhanced by:
@@ -47,13 +74,16 @@ func DeleteTokens(ctx *gin.Context) {
 // - Implementing role-based access control (RBAC) for different user permissions.
 // - Storing the authenticated user in the request context using ctx.Set("user", user) for easier access in handlers.
 func AuthMiddleware(ctx *gin.Context) {
+
 	accessToken, _ := ctx.Cookie("Authorization")
+
 	secret := os.Getenv("GENERATE_TOKEN_SECRET")
 	token, err := jwt.Parse(accessToken, func(token *jwt.Token) (any, error) {
 		return []byte(secret), nil
 	})
 
 	refresToken, _ := ctx.Cookie("Refresh-token")
+
 	secretRefresh := os.Getenv("GENERATE_REFRESH_TOKEN_SECRET")
 	refreshToken, _ := jwt.Parse(refresToken, func(token *jwt.Token) (any, error) {
 		return []byte(secretRefresh), nil
@@ -67,14 +97,13 @@ func AuthMiddleware(ctx *gin.Context) {
 				ctx.Abort()
 				return
 			}
-			idFloat, ok := claims["id"].(float64)
+			id, ok := claims["id"]
 			if !ok {
 				responsejson.Unauthorized(ctx)
 				ctx.Abort()
 				return
 			}
-			id := int(idFloat)
-			CreateAccessToken(ctx, id)
+			CreateAccessToken(ctx, id.(string))
 		} else {
 			responsejson.Unauthorized(ctx)
 			ctx.Abort()

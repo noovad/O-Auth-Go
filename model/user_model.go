@@ -1,11 +1,18 @@
 package model
 
-import "time"
+import (
+	"time"
 
-type Users struct {
-	Id        int       `gorm:"primary_key"`
-	Username  string    `gorm:"type:varchar(255)"`
-	Email     string    `gorm:"type:varchar(255);unique"`
-	CreatedAt time.Time `gorm:"type:timestamp"`
-	UpdatedAt time.Time `gorm:"type:timestamp"`
+	"github.com/google/uuid"
+)
+
+type User struct {
+	Id         uuid.UUID `gorm:"type:uuid;default:uuid_generate_v4();primaryKey"`
+	Username   string    `gorm:"type:varchar(255);unique;not null"`
+	Name       string    `gorm:"type:varchar(255)"`
+	Email      string    `gorm:"type:varchar(255);unique"`
+	AvatarType string    `gorm:"type:varchar(255)"`
+	Password   string    `gorm:"type:varchar(255)"`
+	CreatedAt  time.Time `gorm:"type:timestamp"`
+	UpdatedAt  time.Time `gorm:"type:timestamp"`
 }

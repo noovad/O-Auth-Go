@@ -7,20 +7,20 @@
 package api
 
 import (
-	"learn_o_auth-project/api/controller"
-	"learn_o_auth-project/api/repository"
-	"learn_o_auth-project/api/service"
-	"learn_o_auth-project/config"
+	"go_auth-project/api/controller"
+	"go_auth-project/api/repository"
+	"go_auth-project/api/service"
+	"go_auth-project/config"
 )
 
 // Injectors from injector.go:
 
-func InitializeAuthController() *controller.UsersAuthController {
+func AuthInjector() *controller.AuthController {
 	db := config.DatabaseConnection()
 	usersRepository := repository.NewUsersREpositoryImpl(db)
 	validate := config.NewValidator()
-	usersService := service.NewUsersServiceImpl(usersRepository, validate)
-	authService := service.NewAuthService(usersService)
-	usersAuthController := controller.NewUsersAuthController(usersService, authService)
-	return usersAuthController
+	userService := service.NewUserServiceImpl(usersRepository, validate)
+	authService := service.NewAuthService(userService)
+	authController := controller.NewAuthController(userService, authService)
+	return authController
 }

@@ -13,11 +13,11 @@ type Response struct {
 }
 
 // Create, Read, Update, Delete
-func Success(ctx *gin.Context, action string, data interface{}) {
+func Success(ctx *gin.Context, method string, data interface{}) {
 	var code int
 	var message string
 
-	switch action {
+	switch method {
 	case "create":
 		code = http.StatusCreated
 		message = "Successfully created"
@@ -32,7 +32,7 @@ func Success(ctx *gin.Context, action string, data interface{}) {
 		message = "Successfully deleted"
 	default:
 		code = http.StatusOK
-		message = "Success"
+		message = method
 	}
 
 	ctx.JSON(code, Response{
@@ -74,21 +74,21 @@ func Forbidden(ctx *gin.Context, message string) {
 	})
 }
 
-// func NotFound(ctx *gin.Context, message string) {
-// 	ctx.JSON(http.StatusNotFound, Response{
-// 		Code:   http.StatusNotFound,
-// 		Status: "Not Found",
-// 		Data:   message,
-// 	})
-// }
+func NotFound(ctx *gin.Context, message string) {
+	ctx.JSON(http.StatusNotFound, Response{
+		Code:   http.StatusNotFound,
+		Status: "Not Found",
+		Data:   message,
+	})
+}
 
-// func Conflict(ctx *gin.Context, message string) {
-// 	ctx.JSON(http.StatusConflict, Response{
-// 		Code:   http.StatusConflict,
-// 		Status: "Conflict",
-// 		Data:   message,
-// 	})
-// }
+func Conflict(ctx *gin.Context, message string) {
+	ctx.JSON(http.StatusConflict, Response{
+		Code:   http.StatusConflict,
+		Status: "Conflict",
+		Data:   message,
+	})
+}
 
 // func UnprocessableEntity(ctx *gin.Context, err error) {
 // 	ctx.JSON(http.StatusUnprocessableEntity, Response{

@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"log"
 	"os"
 
@@ -15,20 +16,20 @@ var (
 func DatabaseConnection() *gorm.DB {
 	var err error
 
-	// host := os.Getenv("DBHOST")
-	// user := os.Getenv("DBUSER")
-	// password := os.Getenv("DBPASSWORD")
-	// dbname := os.Getenv("DBNAME")
-	// port := os.Getenv("DBPORT")
+	host := os.Getenv("DBHOST")
+	user := os.Getenv("DBUSER")
+	password := os.Getenv("DBPASSWORD")
+	dbname := os.Getenv("DBNAME")
+	port := os.Getenv("DBPORT")
 
-	// if host == "" || user == "" || password == "" || dbname == "" || port == "" {
-	// 	log.Fatal("One or more required environment variables are not set")
-	// }
+	if host == "" || user == "" || password == "" || dbname == "" || port == "" {
+		log.Fatal("One or more required environment variables are not set")
+	}
 
-	// dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=disable TimeZone=Asia/Shanghai",
-	// 	host, user, password, dbname, port)
+	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=disable TimeZone=Asia/Shanghai",
+		host, user, password, dbname, port)
 
-	dsn := os.Getenv("DATABASE_URL")
+	// dsn := os.Getenv("DATABASE_URL")
 
 	db, err = gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
