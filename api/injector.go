@@ -1,6 +1,4 @@
-// go:build wireinject
 //go:build wireinject
-// +build wireinject
 
 package api
 
@@ -13,7 +11,7 @@ import (
 	"github.com/google/wire"
 )
 
-func InitializeAuthController() *controller.AuthController {
-	wire.Build(controller.NewAuthController, service.NewUsersServiceImpl, service.NewAuthService, repository.NewUsersREpositoryImpl, config.DatabaseConnection, config.NewValidator)
+func AuthInjector() *controller.AuthController {
+	wire.Build(controller.NewAuthController, service.NewUserServiceImpl, service.NewAuthService, repository.NewUsersREpositoryImpl, config.DatabaseConnection, config.NewValidator)
 	return nil
 }

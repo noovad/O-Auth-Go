@@ -14,7 +14,7 @@ import (
 func OAuthRoutes(r *gin.Engine) {
 	authMidleware := helper.AuthMiddleware
 	guestMiddleware := helper.GuestMiddleware
-	authController := api.InitializeAuthController()
+	authController := api.AuthInjector()
 
 	r.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{os.Getenv("FRONTEND_BASE_URL")},
