@@ -13,7 +13,7 @@ import (
 	"github.com/google/wire"
 )
 
-func InitializeAuthController() *controller.UsersAuthController {
-	wire.Build(controller.NewUsersAuthController, service.NewUsersServiceImpl, service.NewAuthService, repository.NewUsersREpositoryImpl, config.DatabaseConnection, config.NewValidator)
+func InitializeAuthController() *controller.AuthController {
+	wire.Build(controller.NewAuthController, service.NewUsersServiceImpl, service.NewAuthService, repository.NewUsersREpositoryImpl, config.DatabaseConnection, config.NewValidator)
 	return nil
 }

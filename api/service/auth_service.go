@@ -22,10 +22,10 @@ type AuthService interface {
 }
 
 type authService struct {
-	usersService UsersService
+	usersService UserService
 }
 
-func NewAuthService(usersService UsersService) AuthService {
+func NewAuthService(usersService UserService) AuthService {
 	return &authService{usersService: usersService}
 }
 

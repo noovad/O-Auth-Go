@@ -13,19 +13,19 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type UsersAuthController struct {
-	usersService service.UsersService
+type AuthController struct {
+	usersService service.UserService
 	authService  service.AuthService
 }
 
-func NewUsersAuthController(userService service.UsersService, authService service.AuthService) *UsersAuthController {
-	return &UsersAuthController{
+func NewAuthController(userService service.UserService, authService service.AuthService) *AuthController {
+	return &AuthController{
 		usersService: userService,
 		authService:  authService,
 	}
 }
 
-func (controller *UsersAuthController) HandleSignUp(ctx *gin.Context) {
+func (controller *AuthController) HandleSignUp(ctx *gin.Context) {
 	email := ctx.Query("email")
 	err := helper.VerifySignedToken(ctx, email)
 	if err != nil {
@@ -67,7 +67,7 @@ func (controller *UsersAuthController) HandleSignUp(ctx *gin.Context) {
 	})
 }
 
-func (controller *UsersAuthController) HandleLogin(ctx *gin.Context) {
+func (controller *AuthController) HandleLogin(ctx *gin.Context) {
 	var user data.LoginRequest
 	if err := ctx.ShouldBindJSON(&user); err != nil {
 		responsejson.BadRequest(ctx, err)
@@ -114,7 +114,7 @@ func HandleLogOut(c *gin.Context) {
 	})
 }
 
-func (controller *UsersAuthController) HandleGoogleAuthCallback(ctx *gin.Context) {
+func (controller *AuthController) HandleGoogleAuthCallback(ctx *gin.Context) {
 	state := ctx.Query("state")
 	code := ctx.Query("code")
 

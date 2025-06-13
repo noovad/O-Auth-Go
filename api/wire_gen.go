@@ -15,12 +15,12 @@ import (
 
 // Injectors from injector.go:
 
-func InitializeAuthController() *controller.UsersAuthController {
+func InitializeAuthController() *controller.AuthController {
 	db := config.DatabaseConnection()
 	usersRepository := repository.NewUsersREpositoryImpl(db)
 	validate := config.NewValidator()
-	usersService := service.NewUsersServiceImpl(usersRepository, validate)
+	usersService := service.NewUserServiceImpl(usersRepository, validate)
 	authService := service.NewAuthService(usersService)
-	usersAuthController := controller.NewUsersAuthController(usersService, authService)
-	return usersAuthController
+	AuthController := controller.NewAuthController(usersService, authService)
+	return AuthController
 }

@@ -10,25 +10,25 @@ import (
 	"github.com/google/uuid"
 )
 
-type UsersService interface {
+type UserService interface {
 	CreateAndReturnID(user data.CreateUsersRequest) (uuid.UUID, error)
 	FindByEmail(Email string) (data.UserResponse, error)
 	FindByUsername(username string) (data.UserResponse, error)
 }
 
-func NewUsersServiceImpl(userRepository repository.UsersRepository, validate *validator.Validate) UsersService {
-	return &UsersServiceImpl{
+func NewUserServiceImpl(userRepository repository.UsersRepository, validate *validator.Validate) UserService {
+	return &UserServiceImpl{
 		UsersRepository: userRepository,
 		Validate:        validate,
 	}
 }
 
-type UsersServiceImpl struct {
+type UserServiceImpl struct {
 	UsersRepository repository.UsersRepository
 	Validate        *validator.Validate
 }
 
-func (t *UsersServiceImpl) CreateAndReturnID(user data.CreateUsersRequest) (uuid.UUID, error) {
+func (t *UserServiceImpl) CreateAndReturnID(user data.CreateUsersRequest) (uuid.UUID, error) {
 	err := t.Validate.Struct(user)
 	if err != nil {
 		return uuid.Nil, helper.ErrFailedValidationWrap(err)
@@ -39,7 +39,7 @@ func (t *UsersServiceImpl) CreateAndReturnID(user data.CreateUsersRequest) (uuid
 		return uuid.Nil, err
 	}
 
-	userModel := model.Users{
+	userModel := model.User{
 		Username:   user.Username,
 		Email:      user.Email,
 		Name:       user.Name,
@@ -50,7 +50,7 @@ func (t *UsersServiceImpl) CreateAndReturnID(user data.CreateUsersRequest) (uuid
 	return t.UsersRepository.SaveAndReturnID(userModel)
 }
 
-func (t *UsersServiceImpl) FindByEmail(Email string) (data.UserResponse, error) {
+func (t *UserServiceImpl) FindByEmail(Email string) (data.UserResponse, error) {
 	userData, err := t.UsersRepository.FindByEmail(Email)
 	if err != nil {
 		return data.UserResponse{}, err
@@ -63,7 +63,7 @@ func (t *UsersServiceImpl) FindByEmail(Email string) (data.UserResponse, error) 
 	}, nil
 }
 
-func (t *UsersServiceImpl) FindByUsername(username string) (data.UserResponse, error) {
+func (t *UserServiceImpl) FindByUsername(username string) (data.UserResponse, error) {
 	userData, err := t.UsersRepository.FindByUsername(username)
 	if err != nil {
 		return data.UserResponse{}, err
