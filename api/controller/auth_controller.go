@@ -4,13 +4,14 @@ import (
 	"errors"
 	"go_auth-project/api/service"
 	"go_auth-project/config"
-	"go_auth-project/data"
+	"go_auth-project/dto"
 	"go_auth-project/helper"
 	"go_auth-project/helper/responsejson"
 	"net/http"
 	"os"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 type AuthController struct {
@@ -37,7 +38,7 @@ func (controller *AuthController) HandleSignUp(ctx *gin.Context) {
 		return
 	}
 
-	var user data.CreateUsersRequest
+	var user dto.CreateUsersRequest
 	user.Email = email
 
 	if err := ctx.ShouldBindJSON(&user); err != nil {
@@ -68,7 +69,7 @@ func (controller *AuthController) HandleSignUp(ctx *gin.Context) {
 }
 
 func (controller *AuthController) HandleLogin(ctx *gin.Context) {
-	var user data.LoginRequest
+	var user dto.LoginRequest
 	if err := ctx.ShouldBindJSON(&user); err != nil {
 		responsejson.BadRequest(ctx, err)
 		return
@@ -121,7 +122,7 @@ func (controller *AuthController) HandleGoogleAuthCallback(ctx *gin.Context) {
 	user, err := controller.authService.AuthenticateWithGoogle(ctx, state, code)
 
 	if err != nil {
-		if errors.Is(err, helper.ErrUserNotFound) {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			helper.CreateSignedToken(ctx, user.Email)
 			ctx.Redirect(http.StatusTemporaryRedirect, os.Getenv("FRONTEND_BASE_URL")+"/sign-up?email="+user.Email)
 			return

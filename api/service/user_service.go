@@ -2,7 +2,7 @@ package service
 
 import (
 	"go_auth-project/api/repository"
-	"go_auth-project/data"
+	"go_auth-project/dto"
 	"go_auth-project/helper"
 	"go_auth-project/model"
 
@@ -11,9 +11,9 @@ import (
 )
 
 type UserService interface {
-	CreateAndReturnID(user data.CreateUsersRequest) (uuid.UUID, error)
-	FindByEmail(Email string) (data.UserResponse, error)
-	FindByUsername(username string) (data.UserResponse, error)
+	CreateAndReturnID(user dto.CreateUsersRequest) (uuid.UUID, error)
+	FindByEmail(Email string) (dto.UserResponse, error)
+	FindByUsername(username string) (dto.UserResponse, error)
 }
 
 func NewUserServiceImpl(userRepository repository.UsersRepository, validate *validator.Validate) UserService {
@@ -28,7 +28,7 @@ type UserServiceImpl struct {
 	Validate        *validator.Validate
 }
 
-func (t *UserServiceImpl) CreateAndReturnID(user data.CreateUsersRequest) (uuid.UUID, error) {
+func (t *UserServiceImpl) CreateAndReturnID(user dto.CreateUsersRequest) (uuid.UUID, error) {
 	err := t.Validate.Struct(user)
 	if err != nil {
 		return uuid.Nil, helper.ErrFailedValidationWrap(err)
@@ -50,26 +50,26 @@ func (t *UserServiceImpl) CreateAndReturnID(user data.CreateUsersRequest) (uuid.
 	return t.UsersRepository.SaveAndReturnID(userModel)
 }
 
-func (t *UserServiceImpl) FindByEmail(Email string) (data.UserResponse, error) {
+func (t *UserServiceImpl) FindByEmail(Email string) (dto.UserResponse, error) {
 	userData, err := t.UsersRepository.FindByEmail(Email)
 	if err != nil {
-		return data.UserResponse{}, err
+		return dto.UserResponse{}, err
 	}
 
-	return data.UserResponse{
+	return dto.UserResponse{
 		Id:       userData.Id,
 		Username: userData.Username,
 		Email:    userData.Email,
 	}, nil
 }
 
-func (t *UserServiceImpl) FindByUsername(username string) (data.UserResponse, error) {
+func (t *UserServiceImpl) FindByUsername(username string) (dto.UserResponse, error) {
 	userData, err := t.UsersRepository.FindByUsername(username)
 	if err != nil {
-		return data.UserResponse{}, err
+		return dto.UserResponse{}, err
 	}
 
-	return data.UserResponse{
+	return dto.UserResponse{
 		Id:       userData.Id,
 		Username: userData.Username,
 		Email:    userData.Email,
