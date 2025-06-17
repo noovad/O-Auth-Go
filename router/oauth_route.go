@@ -5,7 +5,6 @@ import (
 	"go_auth-project/api/controller"
 	"go_auth-project/helper"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/gin-contrib/cors"
@@ -17,10 +16,8 @@ func OAuthRoutes(r *gin.Engine) {
 	guestMiddleware := helper.GuestMiddleware
 	authController := api.AuthInjector()
 
-	allowedOrigins := strings.Split(os.Getenv("ALLOWED_ORIGINS"), ",")
-
 	r.Use(cors.New(cors.Config{
-		AllowOrigins:     allowedOrigins,
+		AllowOrigins:     []string{os.Getenv("ALLOWED_ORIGINS")},
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization", "Refresh-token", "Signed-token", "Oauth-State"},
 		AllowCredentials: true,
