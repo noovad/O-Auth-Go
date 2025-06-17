@@ -11,18 +11,18 @@ import (
 )
 
 func SetCookie(ctx *gin.Context, name, value string, duration time.Duration) {
-	domain := "o-auth-go-production.up.railway.app"
-	ctx.SetCookie(name, value, int(duration.Seconds()), "/", domain, true, false)
-	// Explicitly add SameSite=None since Gin does not support it directly
+	ctx.SetCookie(name, value, int(duration.Seconds()), "/", "", true, true) // Secure, HttpOnly
+
+	// Tambahkan SameSite=None secara manual
 	ctx.Writer.Header().Add("Set-Cookie",
-		fmt.Sprintf("%s=%s; Path=/; Max-Age=%d; Domain=%s; Secure; HttpOnly; SameSite=None",
+		fmt.Sprintf("%s=%s; Path=/; Max-Age=%d; Secure; HttpOnly; SameSite=None",
 			name,
 			value,
 			int(duration.Seconds()),
-			domain,
 		),
 	)
 }
+
 
 func generateToken(ctx *gin.Context, id string, secret string, duration time.Duration, cookieName string) error {
 	claims := jwt.MapClaims{
