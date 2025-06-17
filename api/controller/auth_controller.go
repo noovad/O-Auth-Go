@@ -28,7 +28,7 @@ func NewAuthController(userService service.UserService, authService service.Auth
 
 func HandleGoogleAuth(ctx *gin.Context) {
 	state := helper.GenerateState()
-	ctx.SetCookie("Oauth-State", state, 60, "/", os.Getenv("FRONTEND_DOMAIN"), false, true)
+	ctx.SetCookie("Oauth-State", state, 60, "/", "", false, true)
 
 	url := config.GoogleOauthConfig.AuthCodeURL(state)
 	responsejson.Success(ctx, "Redirecting to Google OAuth", gin.H{
@@ -117,7 +117,7 @@ func (c *AuthController) HandleGoogleAuthCallback(ctx *gin.Context) {
 			return
 		}
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			ctx.SetCookie("Signed-token", helper.CreateSignedToken(user.Email), 60*5, "/", os.Getenv("FRONTEND_DOMAIN"), false, true)
+			ctx.SetCookie("Signed-token", helper.CreateSignedToken(user.Email), 60, "/", "", false, true)
 			ctx.Redirect(http.StatusPermanentRedirect, os.Getenv("FRONTEND_BASE_URL")+"/sign-up?email="+user.Email)
 			return
 		}
