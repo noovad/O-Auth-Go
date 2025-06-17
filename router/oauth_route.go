@@ -17,8 +17,8 @@ func OAuthRoutes(r *gin.Engine) {
 	authController := api.AuthInjector()
 
 	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{os.Getenv("ALLOWED_ORIGINS")},
-		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE"},
+		AllowOrigins:     []string{os.Getenv("FRONTEND_BASE_URL")},
+		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization", "Refresh-token", "Signed-token", "Oauth-State"},
 		AllowCredentials: true,
 		MaxAge:           12 * time.Hour,

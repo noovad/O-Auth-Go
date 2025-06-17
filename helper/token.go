@@ -1,8 +1,6 @@
 package helper
 
 import (
-	"fmt"
-	"go_auth-project/helper/responsejson"
 	"os"
 	"time"
 
@@ -10,62 +8,44 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-func SetCookie(ctx *gin.Context, name, value string, duration time.Duration) {
-	ctx.SetCookie(name, value, int(duration.Seconds()), "/", "", true, true) // Secure, HttpOnly
-
-	// Tambahkan SameSite=None secara manual
-	ctx.Writer.Header().Add("Set-Cookie",
-		fmt.Sprintf("%s=%s; Path=/; Max-Age=%d; Secure; HttpOnly; SameSite=None",
-			name,
-			value,
-			int(duration.Seconds()),
-		),
-	)
-}
-
-
-func generateToken(ctx *gin.Context, id string, secret string, duration time.Duration, cookieName string) error {
+func generateToken(id string, secret string, duration time.Duration) string {
 	claims := jwt.MapClaims{
 		"id":  id,
 		"exp": time.Now().Add(duration).Unix(),
 		"iat": time.Now().Unix(),
 	}
 
-	token, err := jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString([]byte(secret))
-	if err != nil {
-		responsejson.InternalServerError(ctx, err)
-		return err
-	}
+	token, _ := jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString([]byte(secret))
 
-	SetCookie(ctx, cookieName, token, duration)
-	return nil
+	return token
 }
 
-func CreateAccessToken(ctx *gin.Context, id string) error {
+func CreateAccessToken(id string) string {
 	secret := os.Getenv("GENERATE_TOKEN_SECRET")
-	return generateToken(ctx, id, secret, time.Minute*30, "Authorization")
+	return generateToken(id, secret, time.Minute*30)
 }
 
-func CreateRefreshToken(ctx *gin.Context, id string) error {
+func CreateRefreshToken(id string) string {
 	secret := os.Getenv("GENERATE_REFRESH_TOKEN_SECRET")
-	return generateToken(ctx, id, secret, time.Hour*24*7, "Refresh-token")
+	return generateToken(id, secret, time.Hour*24*7)
 }
 
-func CreateSignedToken(ctx *gin.Context, email string) error {
+func CreateSignedToken(email string) string {
 	secret := os.Getenv("GENERATE_SIGNING_TOKEN_SECRET")
-	return generateToken(ctx, email, secret, time.Minute*1, "Signed-token")
+	return generateToken(email, secret, time.Minute*1)
 }
 
 func VerifySignedToken(ctx *gin.Context, email string) error {
-	signedToken, err := ctx.Cookie("Signed-token")
-	if err != nil {
-		return err
-	}
+	signedToken, _ := ctx.Cookie("Signed-token")
 
 	secret := os.Getenv("GENERATE_SIGNING_TOKEN_SECRET")
 	parsedToken, err := jwt.Parse(signedToken, func(token *jwt.Token) (interface{}, error) {
 		return []byte(secret), nil
 	})
+
+	if err != nil {
+		return ErrInvalidCredentials
+	}
 
 	if claims, ok := parsedToken.Claims.(jwt.MapClaims); ok && parsedToken.Valid {
 		if claims["id"] != email {
