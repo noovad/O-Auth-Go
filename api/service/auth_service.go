@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"go_auth-project/config"
 	"go_auth-project/dto"
 	"go_auth-project/helper"
@@ -19,7 +20,6 @@ import (
 type AuthService interface {
 	AuthenticateWithGoogle(ctx *gin.Context, state string, code string) (dto.UserResponse, error)
 	AuthenticateWithUsername(ctx *gin.Context, user dto.LoginRequest) (uuid.UUID, error)
-	CreateTokens(ctx *gin.Context, userId uuid.UUID) error
 }
 
 type authService struct {
@@ -31,19 +31,13 @@ func NewAuthService(usersService UserService) AuthService {
 }
 
 func (s *authService) AuthenticateWithGoogle(ctx *gin.Context, state string, code string) (dto.UserResponse, error) {
-	cookieState, err := ctx.Cookie("Oauth-State")
-	if err != nil {
-		if errors.Is(err, http.ErrNoCookie) {
-			return dto.UserResponse{}, helper.ErrOAuthStateNotFound
-		}
-		return dto.UserResponse{}, err
-	}
+
+	cookieState, _ := ctx.Cookie("Oauth-State")
+	fmt.Println("Cookie State:", cookieState)
 
 	if state != cookieState {
 		return dto.UserResponse{}, helper.ErrInvalidOAuthState
 	}
-
-	helper.SetCookie(ctx, "Oauth-State", "", -1)
 
 	content, err := s.getUserInfoFromGoogle(code)
 	if err != nil {
@@ -99,11 +93,4 @@ func (s *authService) getUserInfoFromGoogle(code string) ([]byte, error) {
 	}
 
 	return content, nil
-}
-
-func (s *authService) CreateTokens(ctx *gin.Context, userId uuid.UUID) error {
-	if err := helper.CreateAccessToken(ctx, userId.String()); err != nil {
-		return err
-	}
-	return helper.CreateRefreshToken(ctx, userId.String())
 }

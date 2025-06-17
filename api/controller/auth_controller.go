@@ -28,7 +28,7 @@ func NewAuthController(userService service.UserService, authService service.Auth
 
 func HandleGoogleAuth(ctx *gin.Context) {
 	state := helper.GenerateState()
-	helper.SetCookie(ctx, "Oauth-State", state, 60)
+	ctx.SetCookie("Oauth-State", state, 60, "/", os.Getenv("BACKEND_DOMAIN"), true, true)
 
 	url := config.GoogleOauthConfig.AuthCodeURL(state)
 	responsejson.Success(ctx, "Redirecting to Google OAuth", gin.H{
@@ -66,15 +66,9 @@ func (c *AuthController) HandleSignUp(ctx *gin.Context) {
 		return
 	}
 
-	err = c.authService.CreateTokens(ctx, userId)
-	if err != nil {
-		responsejson.InternalServerError(ctx, err)
-		return
-	}
-
 	responsejson.Success(ctx, "Successfully signed up", gin.H{
-		"user":    user,
-		"message": "You have been signed up successfully",
+		"AccessToken":  helper.CreateAccessToken(userId.String()),
+		"RefreshToken": helper.CreateRefreshToken(userId.String()),
 	})
 }
 
@@ -95,21 +89,13 @@ func (c *AuthController) HandleLogin(ctx *gin.Context) {
 		return
 	}
 
-	err = c.authService.CreateTokens(ctx, userId)
-	if err != nil {
-		responsejson.InternalServerError(ctx, err)
-		return
-	}
-
 	responsejson.Success(ctx, "Successfully logged in", gin.H{
-		"user":    user,
-		"message": "You have been logged in successfully",
+		"AccessToken":  helper.CreateAccessToken(userId.String()),
+		"RefreshToken": helper.CreateRefreshToken(userId.String()),
 	})
 }
 
 func HandleLogOut(c *gin.Context) {
-	helper.SetCookie(c, "Authorization", "", -1)
-	helper.SetCookie(c, "Refresh-token", "", -1)
 
 	responsejson.Success(c, "Successfully logged out", gin.H{
 		"message": "You have been logged out successfully",
@@ -123,16 +109,16 @@ func (c *AuthController) HandleGoogleAuthCallback(ctx *gin.Context) {
 	user, err := c.authService.AuthenticateWithGoogle(ctx, state, code)
 	if err != nil {
 		if errors.Is(err, helper.ErrOAuthStateNotFound) {
-			ctx.Redirect(http.StatusTemporaryRedirect, os.Getenv("FRONTEND_BASE_URL")+"/login?error=OAuth state not found")
+			ctx.Redirect(http.StatusPermanentRedirect, os.Getenv("FRONTEND_BASE_URL")+"/login?error=OAuth state not found")
 			return
 		}
 		if errors.Is(err, helper.ErrInvalidOAuthState) {
-			ctx.Redirect(http.StatusTemporaryRedirect, os.Getenv("FRONTEND_BASE_URL")+"/login?error=Invalid OAuth state")
+			ctx.Redirect(http.StatusPermanentRedirect, os.Getenv("FRONTEND_BASE_URL")+"/login?error=Invalid OAuth state")
 			return
 		}
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			helper.CreateSignedToken(ctx, user.Email)
-			ctx.Redirect(http.StatusTemporaryRedirect, os.Getenv("FRONTEND_BASE_URL")+"/sign-up?email="+user.Email)
+			ctx.SetCookie("Signed-token", helper.CreateSignedToken(user.Email), 60*5, "/", os.Getenv("BACKEND_DOMAIN"), true, true)
+			ctx.Redirect(http.StatusPermanentRedirect, os.Getenv("FRONTEND_BASE_URL")+"/sign-up?email="+user.Email)
 			return
 		}
 
@@ -140,11 +126,9 @@ func (c *AuthController) HandleGoogleAuthCallback(ctx *gin.Context) {
 		return
 	}
 
-	err = c.authService.CreateTokens(ctx, user.Id)
-	if err != nil {
-		ctx.Redirect(http.StatusPermanentRedirect, os.Getenv("FRONTEND_BASE_URL")+"/login?error=Failed to authenticate with Google")
-		return
-	}
+	accessToken := helper.CreateAccessToken(user.Id.String())
+	refreshToken := helper.CreateRefreshToken(user.Id.String())
+	redirectURL := os.Getenv("FRONTEND_BASE_URL") + "/callback?accessToken=" + accessToken + "&refreshToken=" + refreshToken
+	ctx.Redirect(http.StatusTemporaryRedirect, redirectURL)
 
-	ctx.Redirect(http.StatusPermanentRedirect, os.Getenv("FRONTEND_BASE_URL")+"/")
 }

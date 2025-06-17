@@ -16,14 +16,14 @@ import (
 // - Storing the authenticated user in the request context using ctx.Set("user", user) for easier access in handlers.
 func AuthMiddleware(ctx *gin.Context) {
 
-	accessToken, _ := ctx.Cookie("Authorization")
+	accessToken := ctx.GetHeader("Authorization")
 
 	secret := os.Getenv("GENERATE_TOKEN_SECRET")
 	token, err := jwt.Parse(accessToken, func(token *jwt.Token) (any, error) {
 		return []byte(secret), nil
 	})
 
-	refresToken, _ := ctx.Cookie("Refresh-token")
+	refresToken := ctx.GetHeader("Refresh-token")
 
 	secretRefresh := os.Getenv("GENERATE_REFRESH_TOKEN_SECRET")
 	refreshToken, _ := jwt.Parse(refresToken, func(token *jwt.Token) (any, error) {
@@ -44,7 +44,7 @@ func AuthMiddleware(ctx *gin.Context) {
 				ctx.Abort()
 				return
 			}
-			CreateAccessToken(ctx, id.(string))
+			CreateAccessToken(id.(string))
 		} else {
 			responsejson.Unauthorized(ctx)
 			ctx.Abort()
@@ -60,13 +60,13 @@ func AuthMiddleware(ctx *gin.Context) {
 // - Redirecting authenticated users away from guest-only pages instead of returning a Forbidden response.
 // - Storing the guest status in the request context using ctx.Set("user", nil) for consistency.
 func GuestMiddleware(ctx *gin.Context) {
-	accessToken, _ := ctx.Cookie("Authorization")
+	accessToken := ctx.GetHeader("Authorization")
 	secret := os.Getenv("GENERATE_TOKEN_SECRET")
 	token, err := jwt.Parse(accessToken, func(token *jwt.Token) (any, error) {
 		return []byte(secret), nil
 	})
 
-	refresToken, _ := ctx.Cookie("Refresh-token")
+	refresToken := ctx.GetHeader("Refresh-token")
 	secretRefresh := os.Getenv("GENERATE_REFRESH_TOKEN_SECRET")
 	refreshToken, _ := jwt.Parse(refresToken, func(token *jwt.Token) (any, error) {
 		return []byte(secretRefresh), nil
