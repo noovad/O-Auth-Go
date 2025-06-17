@@ -89,19 +89,3 @@ func Conflict(ctx *gin.Context, message string) {
 		Data:   message,
 	})
 }
-
-// func UnprocessableEntity(ctx *gin.Context, err error) {
-// 	ctx.JSON(http.StatusUnprocessableEntity, Response{
-// 		Code:   http.StatusUnprocessableEntity,
-// 		Status: "Unprocessable Entity",
-// 		Data:   err.Error(),
-// 	})
-// }
-
-// func TooManyRequests(ctx *gin.Context, message string) {
-// 	ctx.JSON(http.StatusTooManyRequests, Response{
-// 		Code:   http.StatusTooManyRequests,
-// 		Status: "Too Many Requests",
-// 		Data:   message,
-// 	})
-// }

@@ -43,7 +43,7 @@ func (s *authService) AuthenticateWithGoogle(ctx *gin.Context, state string, cod
 		return dto.UserResponse{}, helper.ErrInvalidOAuthState
 	}
 
-	ctx.SetCookie("Oauth-State", "", -1, "/", os.Getenv("FRONTEND_DOMAIN"), false, true)
+	helper.SetCookie(ctx, "Oauth-State", "", -1)
 
 	content, err := s.getUserInfoFromGoogle(code)
 	if err != nil {
@@ -87,7 +87,7 @@ func (s *authService) getUserInfoFromGoogle(code string) ([]byte, error) {
 		return nil, helper.ErrCodeExchangeFailed(err)
 	}
 
-	response, err := http.Get("https://www.googleapis.com/oauth2/v2/userinfo?access_token=" + token.AccessToken)
+	response, err := http.Get(os.Getenv("GOOGLE_USERINFO_URL") + "?access_token=" + token.AccessToken)
 	if err != nil {
 		return nil, err
 	}
