@@ -12,7 +12,6 @@ import (
 )
 
 func OAuthRoutes(r *gin.Engine) {
-	authMidleware := helper.AuthMiddleware
 	guestMiddleware := helper.GuestMiddleware
 	authController := api.AuthInjector()
 
@@ -24,9 +23,15 @@ func OAuthRoutes(r *gin.Engine) {
 		MaxAge:           12 * time.Hour,
 	}))
 
-	r.POST("/sign-up", guestMiddleware, authController.HandleSignUp)
-	r.POST("/login", guestMiddleware, authController.HandleLogin)
-	r.POST("/logout", authMidleware, controller.HandleLogOut)
-	r.GET("/auth", guestMiddleware, controller.HandleGoogleAuth)
-	r.GET("/callback", authController.HandleGoogleAuthCallback)
+	{
+		auth := r.Group("/auth")
+		auth.POST("/sign-up", guestMiddleware, authController.HandleSignUp)
+		auth.POST("/login", guestMiddleware, authController.HandleLogin)
+		auth.GET("/google", guestMiddleware, controller.HandleGoogleAuth)
+		auth.GET("/callback", authController.HandleGoogleAuthCallback)
+		auth.POST("/refresh", authController.HandleRefreshToken)
+		auth.POST("/exchange-code", guestMiddleware, authController.ExchangeCode)
+		auth.DELETE("/account", authController.HandleDeleteAccount)
+	}
+
 }

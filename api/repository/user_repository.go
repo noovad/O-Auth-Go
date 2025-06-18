@@ -9,9 +9,10 @@ import (
 )
 
 type UsersRepository interface {
-	SaveAndReturnID(user model.User) (uuid.UUID, error)
+	CreateUser(user model.User) (model.User, error)
 	FindByEmail(Email string) (model.User, error)
 	FindByUsername(username string) (model.User, error)
+	DeleteById(id uuid.UUID) error
 }
 
 func NewUsersREpositoryImpl(Db *gorm.DB) UsersRepository {
@@ -22,12 +23,13 @@ type UsersRepositoryImpl struct {
 	Db *gorm.DB
 }
 
-func (r *UsersRepositoryImpl) SaveAndReturnID(user model.User) (uuid.UUID, error) {
+func (r *UsersRepositoryImpl) CreateUser(user model.User) (model.User, error) {
 	result := r.Db.Create(&user)
 	if result.Error != nil {
-		return uuid.Nil, result.Error
+		return user, result.Error
 	}
-	return user.Id, nil
+	user.Id = result.Statement.Model.(*model.User).Id
+	return user, nil
 }
 
 func (t *UsersRepositoryImpl) FindByEmail(Email string) (model.User, error) {
@@ -52,4 +54,15 @@ func (t *UsersRepositoryImpl) FindByUsername(username string) (model.User, error
 		return user, result.Error
 	}
 	return user, nil
+}
+
+func (r *UsersRepositoryImpl) DeleteById(id uuid.UUID) error {
+	result := r.Db.Delete(&model.User{}, id)
+	if result.Error != nil {
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		return gorm.ErrRecordNotFound
+	}
+	return nil
 }

@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"go_auth-project/config"
 	"go_auth-project/dto"
 	"go_auth-project/helper"
@@ -13,13 +12,12 @@ import (
 	"os"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
 type AuthService interface {
 	AuthenticateWithGoogle(ctx *gin.Context, state string, code string) (dto.UserResponse, error)
-	AuthenticateWithUsername(ctx *gin.Context, user dto.LoginRequest) (uuid.UUID, error)
+	AuthenticateWithUsername(ctx *gin.Context, user dto.LoginRequest) (dto.UserResponse, error)
 }
 
 type authService struct {
@@ -31,9 +29,7 @@ func NewAuthService(usersService UserService) AuthService {
 }
 
 func (s *authService) AuthenticateWithGoogle(ctx *gin.Context, state string, code string) (dto.UserResponse, error) {
-
 	cookieState, _ := ctx.Cookie("Oauth-State")
-	fmt.Println("Cookie State:", cookieState)
 
 	if state != cookieState {
 		return dto.UserResponse{}, helper.ErrInvalidOAuthState
@@ -62,17 +58,20 @@ func (s *authService) AuthenticateWithGoogle(ctx *gin.Context, state string, cod
 	return user, nil
 }
 
-func (s *authService) AuthenticateWithUsername(ctx *gin.Context, user dto.LoginRequest) (uuid.UUID, error) {
+func (s *authService) AuthenticateWithUsername(ctx *gin.Context, user dto.LoginRequest) (dto.UserResponse, error) {
 	existingUser, err := s.usersService.FindByUsername(user.Username)
 	if err != nil {
-		return uuid.Nil, helper.ErrInvalidCredentials
+		return dto.UserResponse{}, helper.ErrInvalidCredentials
 	}
 
 	if !helper.CheckPasswordHash(user.Password, existingUser.Password) {
-		return uuid.Nil, helper.ErrInvalidCredentials
+		return dto.UserResponse{}, helper.ErrInvalidCredentials
 	}
 
-	return existingUser.Id, nil
+	existingUser.Password = ""
+	existingUser.Email =  ""
+
+	return existingUser, nil
 }
 
 func (s *authService) getUserInfoFromGoogle(code string) ([]byte, error) {

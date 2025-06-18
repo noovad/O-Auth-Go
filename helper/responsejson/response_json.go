@@ -7,85 +7,103 @@ import (
 )
 
 type Response struct {
-	Code   int         `json:"code"`
-	Status string      `json:"status"`
-	Data   interface{} `json:"data"`
+	Success bool   `json:"success"`
+	Message string `json:"message"`
+	Data    any    `json:"data,omitempty"`
+	Errors  any    `json:"errors,omitempty"`
 }
 
-// Create, Read, Update, Delete
-func Success(ctx *gin.Context, method string, data interface{}) {
-	var code int
-	var message string
-
-	switch method {
-	case "create":
-		code = http.StatusCreated
-		message = "Successfully created"
-	case "read":
-		code = http.StatusOK
-		message = "Successfully retrieved data"
-	case "update":
-		code = http.StatusOK
-		message = "Successfully updated"
-	case "delete":
-		code = http.StatusOK
-		message = "Successfully deleted"
-	default:
-		code = http.StatusOK
-		message = method
+func Success(ctx *gin.Context, data any, message ...string) {
+	msg := "Success"
+	if len(message) > 0 && message[0] != "" {
+		msg = message[0]
 	}
 
-	ctx.JSON(code, Response{
-		Code:   code,
-		Status: message,
-		Data:   data,
+	ctx.JSON(http.StatusOK, Response{
+		Success: true,
+		Message: msg,
+		Data:    data,
 	})
 }
 
-func Unauthorized(ctx *gin.Context) {
+func Created(ctx *gin.Context, data any, message ...string) {
+	msg := "Resource created successfully"
+	if len(message) > 0 && message[0] != "" {
+		msg = message[0]
+	}
+
+	ctx.JSON(http.StatusCreated, Response{
+		Success: true,
+		Message: msg,
+		Data:    data,
+	})
+}
+
+func Unauthorized(ctx *gin.Context, message ...string) {
+	msg := "Unauthorized"
+	if len(message) > 0 && message[0] != "" {
+		msg = message[0]
+	}
 	ctx.JSON(http.StatusUnauthorized, Response{
-		Code:   http.StatusUnauthorized,
-		Status: "Unauthorized",
-		Data:   nil,
+		Success: false,
+		Message: msg,
 	})
 }
 
-func InternalServerError(ctx *gin.Context, err error) {
+func InternalServerError(ctx *gin.Context, err error, message ...string) {
+	msg := "Internal Server Error"
+	if len(message) > 0 && message[0] != "" {
+		msg = message[0]
+	}
 	ctx.JSON(http.StatusInternalServerError, Response{
-		Code:   http.StatusInternalServerError,
-		Status: "Internal Server Error",
-		Data:   err.Error(),
+		Success: false,
+		Message: msg,
+		Errors:  err.Error(),
 	})
 }
 
-func BadRequest(ctx *gin.Context, err error) {
+func BadRequest(ctx *gin.Context, err error, message ...string) {
+	msg := "Bad Request"
+	if len(message) > 0 && message[0] != "" {
+		msg = message[0]
+	}
 	ctx.JSON(http.StatusBadRequest, Response{
-		Code:   http.StatusBadRequest,
-		Status: "Bad Request",
-		Data:   err.Error(),
+		Success: false,
+		Message: msg,
+		Errors:  err.Error(),
 	})
 }
 
-func Forbidden(ctx *gin.Context, message string) {
+func Forbidden(ctx *gin.Context, message ...string) {
+	msg := "Forbidden"
+	if len(message) > 0 && message[0] != "" {
+		msg = message[0]
+	}
 	ctx.JSON(http.StatusForbidden, Response{
-		Code:   http.StatusForbidden,
-		Status: "Forbidden",
-		Data:   message,
+		Success: false,
+		Message: msg,
 	})
 }
 
-func NotFound(ctx *gin.Context, message string) {
+func NotFound(ctx *gin.Context, message ...string) {
+	msg := "Not Found"
+	if len(message) > 0 && message[0] != "" {
+		msg = message[0]
+	}
 	ctx.JSON(http.StatusNotFound, Response{
-		Code:   http.StatusNotFound,
-		Status: "Not Found",
-		Data:   message,
+		Success: false,
+		Message: msg,
 	})
 }
 
-func Conflict(ctx *gin.Context, message string) {
+func Conflict(ctx *gin.Context, err error, message ...string) {
+	msg := "Conflict"
+	if len(message) > 0 && message[0] != "" {
+		msg = message[0]
+	}
 	ctx.JSON(http.StatusConflict, Response{
-		Code:   http.StatusConflict,
-		Status: "Conflict",
-		Data:   message,
+		Success: false,
+		Message: msg,
+		Errors:  err.Error(),
 	})
 }

@@ -11,9 +11,10 @@ import (
 )
 
 type UserService interface {
-	CreateAndReturnID(user dto.CreateUsersRequest) (uuid.UUID, error)
+	CreateUser(user dto.CreateUsersRequest) (dto.UserResponse, error)
 	FindByEmail(Email string) (dto.UserResponse, error)
 	FindByUsername(username string) (dto.UserResponse, error)
+	DeleteById(id uuid.UUID) error
 }
 
 func NewUserServiceImpl(userRepository repository.UsersRepository, validate *validator.Validate) UserService {
@@ -28,15 +29,15 @@ type UserServiceImpl struct {
 	Validate        *validator.Validate
 }
 
-func (t *UserServiceImpl) CreateAndReturnID(user dto.CreateUsersRequest) (uuid.UUID, error) {
+func (t *UserServiceImpl) CreateUser(user dto.CreateUsersRequest) (dto.UserResponse, error) {
 	err := t.Validate.Struct(user)
 	if err != nil {
-		return uuid.Nil, helper.ErrFailedValidationWrap(err)
+		return dto.UserResponse{}, helper.ErrFailedValidationWrap(err)
 	}
 
 	hashPassword, err := helper.HashPassword(user.Password)
 	if err != nil {
-		return uuid.Nil, err
+		return dto.UserResponse{}, err
 	}
 
 	userModel := model.User{
@@ -47,7 +48,18 @@ func (t *UserServiceImpl) CreateAndReturnID(user dto.CreateUsersRequest) (uuid.U
 		AvatarType: user.AvatarType,
 	}
 
-	return t.UsersRepository.SaveAndReturnID(userModel)
+	createdUser, err := t.UsersRepository.CreateUser(userModel)
+	if err != nil {
+		return dto.UserResponse{}, err
+	}
+
+	return dto.UserResponse{
+		Id:         createdUser.Id,
+		Name:       createdUser.Name,
+		Username:   createdUser.Username,
+		Email:      createdUser.Email,
+		AvatarType: createdUser.AvatarType,
+	}, nil
 }
 
 func (t *UserServiceImpl) FindByEmail(Email string) (dto.UserResponse, error) {
@@ -57,22 +69,31 @@ func (t *UserServiceImpl) FindByEmail(Email string) (dto.UserResponse, error) {
 	}
 
 	return dto.UserResponse{
-		Id:       userData.Id,
-		Username: userData.Username,
-		Email:    userData.Email,
+		Id:         userData.Id,
+		Name:       userData.Name,
+		Username:   userData.Username,
+		Email:      userData.Email,
+		AvatarType: userData.AvatarType,
 	}, nil
 }
 
 func (t *UserServiceImpl) FindByUsername(username string) (dto.UserResponse, error) {
-	userData, err := t.UsersRepository.FindByUsername(username)
+	user, err := t.UsersRepository.FindByUsername(username)
 	if err != nil {
 		return dto.UserResponse{}, err
 	}
 
 	return dto.UserResponse{
-		Id:       userData.Id,
-		Username: userData.Username,
-		Email:    userData.Email,
-		Password: userData.Password,
+		Id:         user.Id,
+		Name:       user.Name,
+		Username:   user.Username,
+		Email:      user.Email,
+		AvatarType: user.AvatarType,
+		Password:   user.Password,
 	}, nil
+
+}
+
+func (t *UserServiceImpl) DeleteById(id uuid.UUID) error {
+	return t.UsersRepository.DeleteById(id)
 }

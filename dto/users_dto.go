@@ -11,8 +11,10 @@ type CreateUsersRequest struct {
 }
 
 type UserResponse struct {
-	Id       uuid.UUID `json:"id"`
-	Email    string `json:"email"`
-	Username string `json:"username"`
-	Password string `json:"password"`
+	Id         uuid.UUID `json:"id"`
+	Name       string    `json:"name"`
+	Email      string    `json:"email,omitempty"`
+	Username   string    `json:"username"`
+	AvatarType string    `json:"avatar_type,omitempty"`
+	Password   string    `json:"password,omitempty"`
 }
