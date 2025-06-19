@@ -13,6 +13,7 @@ import (
 
 func OAuthRoutes(r *gin.Engine) {
 	guestMiddleware := helper.GuestMiddleware
+	authMiddleware := helper.AuthMiddleware
 	authController := api.AuthInjector()
 
 	r.Use(cors.New(cors.Config{
@@ -27,11 +28,10 @@ func OAuthRoutes(r *gin.Engine) {
 		auth := r.Group("/auth")
 		auth.POST("/sign-up", guestMiddleware, authController.HandleSignUp)
 		auth.POST("/login", guestMiddleware, authController.HandleLogin)
+		auth.POST("/logout", authMiddleware, authController.HandleLogout)
 		auth.GET("/google", guestMiddleware, controller.HandleGoogleAuth)
 		auth.GET("/callback", authController.HandleGoogleAuthCallback)
 		auth.POST("/refresh", authController.HandleRefreshToken)
-		auth.POST("/exchange-code", guestMiddleware, authController.ExchangeCode)
-		auth.DELETE("/account", authController.HandleDeleteAccount)
+		auth.DELETE("/delete-account", authController.HandleDeleteAccount)
 	}
-
 }

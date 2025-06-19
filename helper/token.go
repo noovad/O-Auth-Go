@@ -9,10 +9,12 @@ import (
 )
 
 func generateToken(id string, secret string, duration time.Duration) string {
+	now := time.Now()
+
 	claims := jwt.MapClaims{
 		"id":  id,
-		"exp": time.Now().Add(duration).Unix(),
-		"iat": time.Now().Unix(),
+		"exp": now.Add(duration).Unix(),
+		"iat": now.Unix(),
 	}
 
 	token, _ := jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString([]byte(secret))
@@ -27,7 +29,7 @@ func CreateAccessToken(id string) string {
 
 func CreateRefreshToken(id string) string {
 	secret := os.Getenv("GENERATE_REFRESH_TOKEN_SECRET")
-	return generateToken(id, secret, time.Hour*24*7)
+	return generateToken(id, secret, time.Hour*24*30)
 }
 
 func CreateSignedToken(email string) string {

@@ -9,10 +9,8 @@ import (
 	"go_auth-project/helper/responsejson"
 	"net/http"
 	"os"
-	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
@@ -30,7 +28,7 @@ func NewAuthController(userService service.UserService, authService service.Auth
 
 func HandleGoogleAuth(ctx *gin.Context) {
 	state := helper.GenerateState()
-	ctx.SetCookie("Oauth-State", state, 60, "/", os.Getenv("BACKEND_DOMAIN"), true, true)
+	helper.SetCookie(ctx.Writer, "Oauth-State", state, 60)
 
 	url := config.GoogleOauthConfig.AuthCodeURL(state)
 
@@ -44,7 +42,7 @@ func (c *AuthController) HandleSignUp(ctx *gin.Context) {
 	err := helper.VerifySignedToken(ctx, email)
 	if err != nil {
 		if errors.Is(err, helper.ErrInvalidCredentials) {
-			responsejson.Unauthorized(ctx, "Invalid signed token")
+			responsejson.Unauthorized(ctx)
 			return
 		}
 		responsejson.InternalServerError(ctx, err, "Failed to verify signed token")
@@ -68,13 +66,13 @@ func (c *AuthController) HandleSignUp(ctx *gin.Context) {
 		return
 	}
 
-	accessToken := helper.CreateAccessToken(user.Id.String())
 	refreshToken := helper.CreateRefreshToken(user.Id.String())
+	helper.SetCookie(ctx.Writer, "refresh_token", refreshToken, 60*60*24*30)
 
+	accessToken := helper.CreateAccessToken(user.Id.String())
 	responsejson.Success(ctx, gin.H{
-		"user":          user,
-		"access_token":  accessToken,
-		"refresh_token": refreshToken,
+		"user":         user,
+		"access_token": accessToken,
 	}, "Successfully signed up")
 }
 
@@ -95,14 +93,20 @@ func (c *AuthController) HandleLogin(ctx *gin.Context) {
 		return
 	}
 
-	accessToken := helper.CreateAccessToken(userResponse.Id.String())
 	refreshToken := helper.CreateRefreshToken(userResponse.Id.String())
+	helper.SetCookie(ctx.Writer, "refresh_token", refreshToken, 60*60*24*30)
+
+	accessToken := helper.CreateAccessToken(userResponse.Id.String())
 
 	responsejson.Success(ctx, gin.H{
-		"user":          userResponse,
-		"access_token":  accessToken,
-		"refresh_token": refreshToken,
+		"user":         userResponse,
+		"access_token": accessToken,
 	}, "Successfully logged in")
+}
+
+func (c *AuthController) HandleLogout(ctx *gin.Context) {
+	helper.SetCookie(ctx.Writer, "refresh_token", "", -1)
+	responsejson.Success(ctx, nil, "Successfully logged out")
 }
 
 func (c *AuthController) HandleGoogleAuthCallback(ctx *gin.Context) {
@@ -128,49 +132,23 @@ func (c *AuthController) HandleGoogleAuthCallback(ctx *gin.Context) {
 		ctx.Redirect(http.StatusPermanentRedirect, os.Getenv("FRONTEND_BASE_URL")+"/login?error=Failed to authenticate with Google. Please try again later.")
 		return
 	}
-	oneTimeCode := uuid.NewString()
-	accessToken := helper.CreateAccessToken(user.Id.String())
 	refreshToken := helper.CreateRefreshToken(user.Id.String())
+	helper.SetCookie(ctx.Writer, "refresh_token", refreshToken, 60*60*24*30)
 
-	helper.SetMemory(oneTimeCode, helper.TokenData{
-		AccessToken:  accessToken,
-		RefreshToken: refreshToken,
-		User:         user,
-	}, time.Minute*2)
-
-	redirectURL := os.Getenv("FRONTEND_BASE_URL") + "/callback?code=" + oneTimeCode
+	redirectURL := os.Getenv("FRONTEND_BASE_URL") + "/"
 	ctx.Redirect(http.StatusTemporaryRedirect, redirectURL)
 }
 
-func (c *AuthController) ExchangeCode(ctx *gin.Context) {
-	var req struct {
-		Code string `json:"code"`
-	}
-	
-	if err := ctx.BindJSON(&req); err != nil || req.Code == "" {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
-		return
-	}
-
-	tokenData, ok := helper.Getmemory(req.Code)
-	if !ok {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "Code expired or invalid"})
-		return
-	}
-
-	ctx.JSON(http.StatusOK, gin.H{
-		"accessToken":  tokenData.AccessToken,
-		"refreshToken": tokenData.RefreshToken,
-		"user":         tokenData.User,
-	})
-}
-
 func (c *AuthController) HandleRefreshToken(ctx *gin.Context) {
-	refreshToken := ctx.GetHeader("refreshToken")
+	refreshToken, err := ctx.Cookie("refresh_token")
+	if err != nil {
+		responsejson.Unauthorized(ctx)
+		return
+	}
 
 	userId, valid := helper.ValidateRefreshToken(refreshToken)
 	if !valid {
-		responsejson.Unauthorized(ctx, "Invalid refresh token")
+		responsejson.Unauthorized(ctx)
 		return
 	}
 
@@ -181,7 +159,7 @@ func (c *AuthController) HandleRefreshToken(ctx *gin.Context) {
 	}
 
 	if !exists {
-		responsejson.Unauthorized(ctx, "User not found")
+		responsejson.Unauthorized(ctx)
 		return
 	}
 
@@ -195,7 +173,7 @@ func (c *AuthController) HandleRefreshToken(ctx *gin.Context) {
 func (c *AuthController) HandleDeleteAccount(ctx *gin.Context) {
 	id, valid := helper.ValidateAccessToken(helper.AccessTokenFromHeader(ctx))
 	if !valid {
-		responsejson.Unauthorized(ctx, "Invalid access token")
+		responsejson.Unauthorized(ctx)
 		return
 	}
 

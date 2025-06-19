@@ -15,14 +15,16 @@ import (
 
 func AuthMiddleware(ctx *gin.Context) {
 	accessToken := AccessTokenFromHeader(ctx)
+	fmt.Println("Access Token:", accessToken)
 	userId, valid := ValidateAccessToken(accessToken)
+	fmt.Println("User ID from Access Token:", userId)
 	if valid && ensureUserExists(ctx, userId) {
 		ctx.Set("userId", userId)
 		ctx.Next()
 		return
 	}
 
-	responsejson.Unauthorized(ctx, "Invalid or expired access token")
+	responsejson.Unauthorized(ctx)
 	ctx.Abort()
 }
 
@@ -50,10 +52,6 @@ func parseToken(tokenStr, secret string) (*jwt.Token, jwt.MapClaims, error) {
 	claims, ok := token.Claims.(jwt.MapClaims)
 	if !ok {
 		return nil, nil, fmt.Errorf("invalid claims")
-	}
-
-	if exp, ok := claims["exp"].(float64); ok && float64(time.Now().Unix()) > exp {
-		return nil, nil, fmt.Errorf("token expired")
 	}
 
 	return token, claims, nil
