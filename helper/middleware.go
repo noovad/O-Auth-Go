@@ -6,7 +6,6 @@ import (
 	"go_auth-project/config"
 	"go_auth-project/helper/responsejson"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -14,12 +13,20 @@ import (
 )
 
 func AuthMiddleware(ctx *gin.Context) {
-	accessToken := AccessTokenFromHeader(ctx)
-	fmt.Println("Access Token:", accessToken)
-	userId, valid := ValidateAccessToken(accessToken)
-	fmt.Println("User ID from Access Token:", userId)
+	accessToken, _ := ctx.Cookie("access_token")
+	userId, valid := ValidateToken(accessToken, os.Getenv("GENERATE_TOKEN_SECRET"))
 	if valid && ensureUserExists(ctx, userId) {
 		ctx.Set("userId", userId)
+		ctx.Next()
+		return
+	}
+
+	refreshToken, _ := ctx.Cookie("refresh_token")
+	refreshUserId, refreshValid := ValidateToken(refreshToken, os.Getenv("GENERATE_REFRESH_TOKEN_SECRET"))
+	if refreshValid && ensureUserExists(ctx, refreshUserId) {
+		newAccessToken := CreateAccessToken(refreshUserId)
+		SetCookie(ctx.Writer, "access_token", newAccessToken, 60*60*24)
+		ctx.Set("userId", refreshUserId)
 		ctx.Next()
 		return
 	}
@@ -29,10 +36,17 @@ func AuthMiddleware(ctx *gin.Context) {
 }
 
 func GuestMiddleware(ctx *gin.Context) {
-	accessToken := AccessTokenFromHeader(ctx)
-
-	userId, valid := ValidateAccessToken(accessToken)
+	accessToken, _ := ctx.Cookie("access_token")
+	userId, valid := ValidateToken(accessToken, os.Getenv("GENERATE_TOKEN_SECRET"))
 	if valid && ensureUserExists(ctx, userId) {
+		responsejson.Forbidden(ctx, "You are already logged in")
+		ctx.Abort()
+		return
+	}
+
+	refreshToken, _ := ctx.Cookie("refresh_token")
+	refreshUserId, refreshValid := ValidateToken(refreshToken, os.Getenv("GENERATE_REFRESH_TOKEN_SECRET"))
+	if refreshValid && ensureUserExists(ctx, refreshUserId) {
 		responsejson.Forbidden(ctx, "You are already logged in")
 		ctx.Abort()
 		return
@@ -57,10 +71,9 @@ func parseToken(tokenStr, secret string) (*jwt.Token, jwt.MapClaims, error) {
 	return token, claims, nil
 }
 
-func ValidateAccessToken(tokenStr string) (string, bool) {
-	_, claims, err := parseToken(tokenStr, os.Getenv("GENERATE_TOKEN_SECRET"))
+func ValidateToken(tokenStr string, secret string) (string, bool) {
+	_, claims, err := parseToken(tokenStr, secret)
 	if err != nil {
-		fmt.Println("Invalid access token:", err)
 		return "", false
 	}
 
@@ -101,26 +114,4 @@ func UserExistsInDatabase(userId string) (bool, error) {
 	}
 
 	return exists, nil
-}
-
-func ValidateRefreshToken(tokenStr string) (string, bool) {
-	_, claims, err := parseToken(tokenStr, os.Getenv("GENERATE_REFRESH_TOKEN_SECRET"))
-	if err != nil {
-		fmt.Println("Invalid refresh token:", err)
-		return "", false
-	}
-
-	id, ok := claims["id"].(string)
-	if !ok {
-		return "", false
-	}
-	return id, true
-}
-
-func AccessTokenFromHeader(ctx *gin.Context) string {
-	header := ctx.GetHeader("Authorization")
-	if strings.HasPrefix(header, "Bearer ") {
-		return strings.TrimPrefix(header, "Bearer ")
-	}
-	return ""
 }

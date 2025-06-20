@@ -11,6 +11,7 @@ import (
 	"os"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
@@ -70,9 +71,9 @@ func (c *AuthController) HandleSignUp(ctx *gin.Context) {
 	helper.SetCookie(ctx.Writer, "refresh_token", refreshToken, 60*60*24*30)
 
 	accessToken := helper.CreateAccessToken(user.Id.String())
+	helper.SetCookie(ctx.Writer, "access_token", accessToken, 60*5)
 	responsejson.Success(ctx, gin.H{
-		"user":         user,
-		"access_token": accessToken,
+		"user": user,
 	}, "Successfully signed up")
 }
 
@@ -97,15 +98,16 @@ func (c *AuthController) HandleLogin(ctx *gin.Context) {
 	helper.SetCookie(ctx.Writer, "refresh_token", refreshToken, 60*60*24*30)
 
 	accessToken := helper.CreateAccessToken(userResponse.Id.String())
+	helper.SetCookie(ctx.Writer, "access_token", accessToken, 60*5)
 
 	responsejson.Success(ctx, gin.H{
-		"user":         userResponse,
-		"access_token": accessToken,
+		"user": userResponse,
 	}, "Successfully logged in")
 }
 
 func (c *AuthController) HandleLogout(ctx *gin.Context) {
 	helper.SetCookie(ctx.Writer, "refresh_token", "", -1)
+	helper.SetCookie(ctx.Writer, "access_token", "", -1)
 	responsejson.Success(ctx, nil, "Successfully logged out")
 }
 
@@ -134,56 +136,20 @@ func (c *AuthController) HandleGoogleAuthCallback(ctx *gin.Context) {
 	}
 	refreshToken := helper.CreateRefreshToken(user.Id.String())
 	helper.SetCookie(ctx.Writer, "refresh_token", refreshToken, 60*60*24*30)
+	accessToken := helper.CreateAccessToken(user.Id.String())
+	helper.SetCookie(ctx.Writer, "access_token", accessToken, 60*5)
 
 	redirectURL := os.Getenv("FRONTEND_BASE_URL") + "/"
 	ctx.Redirect(http.StatusTemporaryRedirect, redirectURL)
 }
 
-func (c *AuthController) HandleRefreshToken(ctx *gin.Context) {
-	refreshToken, err := ctx.Cookie("refresh_token")
-	if err != nil {
-		responsejson.Unauthorized(ctx)
-		return
-	}
-
-	userId, valid := helper.ValidateRefreshToken(refreshToken)
-	if !valid {
-		responsejson.Unauthorized(ctx)
-		return
-	}
-
-	exists, err := helper.UserExistsInDatabase(userId)
-	if err != nil {
-		responsejson.InternalServerError(ctx, err, "Failed to check user existence")
-		return
-	}
-
-	if !exists {
-		responsejson.Unauthorized(ctx)
-		return
-	}
-
-	accessToken := helper.CreateAccessToken(userId)
-
-	responsejson.Success(ctx, gin.H{
-		"access_token": accessToken,
-	}, "Token refreshed successfully")
-}
-
 func (c *AuthController) HandleDeleteAccount(ctx *gin.Context) {
-	id, valid := helper.ValidateAccessToken(helper.AccessTokenFromHeader(ctx))
-	if !valid {
-		responsejson.Unauthorized(ctx)
+	userId, exists := ctx.Get("userId")
+	if !exists {
+		responsejson.Unauthorized(ctx, "User ID not found in context")
 		return
 	}
-
-	UUID, err := helper.StringToUUID(id)
-	if err != nil {
-		responsejson.BadRequest(ctx, err, "Invalid user ID format")
-		return
-	}
-
-	err = c.userService.DeleteById(UUID)
+	err := c.userService.DeleteById(uuid.MustParse(userId.(string)))
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			responsejson.NotFound(ctx, "User not found")
@@ -193,5 +159,7 @@ func (c *AuthController) HandleDeleteAccount(ctx *gin.Context) {
 		return
 	}
 
+	helper.SetCookie(ctx.Writer, "refresh_token", "", -1)
+	helper.SetCookie(ctx.Writer, "access_token", "", -1)
 	responsejson.Success(ctx, nil, "User deleted successfully")
 }
