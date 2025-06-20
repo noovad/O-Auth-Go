@@ -1,6 +1,7 @@
 package helper
 
 import (
+	"go_auth-project/dto"
 	"os"
 	"time"
 
@@ -8,33 +9,46 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-func generateToken(id string, secret string, duration time.Duration) string {
+func generateToken(claims jwt.MapClaims, secret string, duration time.Duration) string {
 	now := time.Now()
-
-	claims := jwt.MapClaims{
-		"id":  id,
-		"exp": now.Add(duration).Unix(),
-		"iat": now.Unix(),
-	}
+	claims["exp"] = now.Add(duration).Unix()
+	claims["iat"] = now.Unix()
 
 	token, _ := jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString([]byte(secret))
 
 	return token
 }
 
-func CreateAccessToken(id string) string {
+func CreateAccessToken(user dto.UserResponse) string {
 	secret := os.Getenv("GENERATE_TOKEN_SECRET")
-	return generateToken(id, secret, time.Minute*30)
+	claims := jwt.MapClaims{
+		"id":          user.Id,
+		"name":        user.Name,
+		"username":    user.Username,
+		"email":       user.Email,
+		"avatar_type": user.AvatarType,
+	}
+	return generateToken(claims, secret, time.Minute*30)
 }
 
-func CreateRefreshToken(id string) string {
+func CreateRefreshToken(user dto.UserResponse) string {
 	secret := os.Getenv("GENERATE_REFRESH_TOKEN_SECRET")
-	return generateToken(id, secret, time.Hour*24*30)
+	claims := jwt.MapClaims{
+		"id":          user.Id,
+		"name":        user.Name,
+		"username":    user.Username,
+		"email":       user.Email,
+		"avatar_type": user.AvatarType,
+	}
+	return generateToken(claims, secret, time.Hour*24*30)
 }
 
 func CreateSignedToken(email string) string {
 	secret := os.Getenv("GENERATE_SIGNING_TOKEN_SECRET")
-	return generateToken(email, secret, time.Minute*1)
+	claims := jwt.MapClaims{
+		"id": email,
+	}
+	return generateToken(claims, secret, time.Minute*1)
 }
 
 func VerifySignedToken(ctx *gin.Context, email string) error {

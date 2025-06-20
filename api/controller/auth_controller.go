@@ -2,6 +2,7 @@ package controller
 
 import (
 	"errors"
+	"fmt"
 	"go_auth-project/api/service"
 	"go_auth-project/config"
 	"go_auth-project/dto"
@@ -67,10 +68,10 @@ func (c *AuthController) HandleSignUp(ctx *gin.Context) {
 		return
 	}
 
-	refreshToken := helper.CreateRefreshToken(user.Id.String())
+	refreshToken := helper.CreateRefreshToken(user)
 	helper.SetCookie(ctx.Writer, "refresh_token", refreshToken, 60*60*24*30)
 
-	accessToken := helper.CreateAccessToken(user.Id.String())
+	accessToken := helper.CreateAccessToken(user)
 	helper.SetCookie(ctx.Writer, "access_token", accessToken, 60*5)
 	responsejson.Success(ctx, gin.H{
 		"user": user,
@@ -94,10 +95,10 @@ func (c *AuthController) HandleLogin(ctx *gin.Context) {
 		return
 	}
 
-	refreshToken := helper.CreateRefreshToken(userResponse.Id.String())
+	refreshToken := helper.CreateRefreshToken(userResponse)
 	helper.SetCookie(ctx.Writer, "refresh_token", refreshToken, 60*60*24*30)
 
-	accessToken := helper.CreateAccessToken(userResponse.Id.String())
+	accessToken := helper.CreateAccessToken(userResponse)
 	helper.SetCookie(ctx.Writer, "access_token", accessToken, 60*5)
 
 	responsejson.Success(ctx, gin.H{
@@ -134,9 +135,10 @@ func (c *AuthController) HandleGoogleAuthCallback(ctx *gin.Context) {
 		ctx.Redirect(http.StatusPermanentRedirect, os.Getenv("FRONTEND_BASE_URL")+"/login?error=Failed to authenticate with Google. Please try again later.")
 		return
 	}
-	refreshToken := helper.CreateRefreshToken(user.Id.String())
+
+	refreshToken := helper.CreateRefreshToken(user)
 	helper.SetCookie(ctx.Writer, "refresh_token", refreshToken, 60*60*24*30)
-	accessToken := helper.CreateAccessToken(user.Id.String())
+	accessToken := helper.CreateAccessToken(user)
 	helper.SetCookie(ctx.Writer, "access_token", accessToken, 60*5)
 
 	redirectURL := os.Getenv("FRONTEND_BASE_URL") + "/"
@@ -145,11 +147,18 @@ func (c *AuthController) HandleGoogleAuthCallback(ctx *gin.Context) {
 
 func (c *AuthController) HandleDeleteAccount(ctx *gin.Context) {
 	userId, exists := ctx.Get("userId")
+	fmt.Println("HandleDeleteAccount: userId from context =", userId, "exists =", exists) // debug
 	if !exists {
-		responsejson.Unauthorized(ctx, "User ID not found in context")
+		responsejson.InternalServerError(ctx, nil, "User ID not found in context")
 		return
 	}
-	err := c.userService.DeleteById(uuid.MustParse(userId.(string)))
+	uid, ok := userId.(uuid.UUID)
+	if !ok {
+		responsejson.InternalServerError(ctx, nil, "Invalid user ID type")
+		return
+	}
+	err := c.userService.DeleteById(uid)
+	fmt.Println("HandleDeleteAccount: error from DeleteById =", err) // debug
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			responsejson.NotFound(ctx, "User not found")

@@ -69,7 +69,6 @@ func (s *authService) AuthenticateWithUsername(ctx *gin.Context, user dto.LoginR
 	}
 
 	existingUser.Password = ""
-	existingUser.Email =  ""
 
 	return existingUser, nil
 }

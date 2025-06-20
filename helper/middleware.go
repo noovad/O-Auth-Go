@@ -4,29 +4,31 @@ import (
 	"context"
 	"fmt"
 	"go_auth-project/config"
+	"go_auth-project/dto"
 	"go_auth-project/helper/responsejson"
 	"os"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
 )
 
 func AuthMiddleware(ctx *gin.Context) {
 	accessToken, _ := ctx.Cookie("access_token")
-	userId, valid := ValidateToken(accessToken, os.Getenv("GENERATE_TOKEN_SECRET"))
-	if valid && ensureUserExists(ctx, userId) {
-		ctx.Set("userId", userId)
+	user, valid := ValidateToken(accessToken, os.Getenv("GENERATE_TOKEN_SECRET"))
+	if valid && ensureUserExists(ctx, user.Id.String()) {
+		ctx.Set("userId", user.Id)
 		ctx.Next()
 		return
 	}
 
 	refreshToken, _ := ctx.Cookie("refresh_token")
-	refreshUserId, refreshValid := ValidateToken(refreshToken, os.Getenv("GENERATE_REFRESH_TOKEN_SECRET"))
-	if refreshValid && ensureUserExists(ctx, refreshUserId) {
-		newAccessToken := CreateAccessToken(refreshUserId)
+	user, refreshValid := ValidateToken(refreshToken, os.Getenv("GENERATE_REFRESH_TOKEN_SECRET"))
+	if refreshValid && ensureUserExists(ctx, user.Id.String()) {
+		newAccessToken := CreateAccessToken(user)
 		SetCookie(ctx.Writer, "access_token", newAccessToken, 60*60*24)
-		ctx.Set("userId", refreshUserId)
+		ctx.Set("userId", user.Id)
 		ctx.Next()
 		return
 	}
@@ -37,16 +39,16 @@ func AuthMiddleware(ctx *gin.Context) {
 
 func GuestMiddleware(ctx *gin.Context) {
 	accessToken, _ := ctx.Cookie("access_token")
-	userId, valid := ValidateToken(accessToken, os.Getenv("GENERATE_TOKEN_SECRET"))
-	if valid && ensureUserExists(ctx, userId) {
+	user, valid := ValidateToken(accessToken, os.Getenv("GENERATE_TOKEN_SECRET"))
+	if valid && ensureUserExists(ctx, user.Id.String()) {
 		responsejson.Forbidden(ctx, "You are already logged in")
 		ctx.Abort()
 		return
 	}
 
 	refreshToken, _ := ctx.Cookie("refresh_token")
-	refreshUserId, refreshValid := ValidateToken(refreshToken, os.Getenv("GENERATE_REFRESH_TOKEN_SECRET"))
-	if refreshValid && ensureUserExists(ctx, refreshUserId) {
+	user, refreshValid := ValidateToken(refreshToken, os.Getenv("GENERATE_REFRESH_TOKEN_SECRET"))
+	if refreshValid && ensureUserExists(ctx, user.Id.String()) {
 		responsejson.Forbidden(ctx, "You are already logged in")
 		ctx.Abort()
 		return
@@ -71,17 +73,24 @@ func parseToken(tokenStr, secret string) (*jwt.Token, jwt.MapClaims, error) {
 	return token, claims, nil
 }
 
-func ValidateToken(tokenStr string, secret string) (string, bool) {
+func ValidateToken(tokenStr string, secret string) (dto.UserResponse, bool) {
 	_, claims, err := parseToken(tokenStr, secret)
 	if err != nil {
-		return "", false
+		return dto.UserResponse{}, false
 	}
 
 	id, ok := claims["id"].(string)
 	if !ok {
-		return "", false
+		return dto.UserResponse{}, false
 	}
-	return id, true
+	UserResponse := dto.UserResponse{
+		Id:         uuid.MustParse(id),
+		Name:       claims["name"].(string),
+		Username:   claims["username"].(string),
+		Email:      claims["email"].(string),
+		AvatarType: claims["avatar_type"].(string),
+	}
+	return UserResponse, true
 }
 
 func ensureUserExists(ctx *gin.Context, userId string) bool {
