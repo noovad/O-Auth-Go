@@ -19,6 +19,7 @@ func main() {
 	}
 
 	db := config.DatabaseConnection()
+	defer config.CloseDB()
 	if db == nil {
 		log.Fatal("Database connection failed")
 	}

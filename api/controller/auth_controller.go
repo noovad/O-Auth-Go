@@ -2,7 +2,6 @@ package controller
 
 import (
 	"errors"
-	"fmt"
 	"go_auth-project/api/service"
 	"go_auth-project/config"
 	"go_auth-project/dto"
@@ -147,7 +146,6 @@ func (c *AuthController) HandleGoogleAuthCallback(ctx *gin.Context) {
 
 func (c *AuthController) HandleDeleteAccount(ctx *gin.Context) {
 	userId, exists := ctx.Get("userId")
-	fmt.Println("HandleDeleteAccount: userId from context =", userId, "exists =", exists) // debug
 	if !exists {
 		responsejson.InternalServerError(ctx, nil, "User ID not found in context")
 		return
@@ -158,7 +156,6 @@ func (c *AuthController) HandleDeleteAccount(ctx *gin.Context) {
 		return
 	}
 	err := c.userService.DeleteById(uid)
-	fmt.Println("HandleDeleteAccount: error from DeleteById =", err) // debug
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			responsejson.NotFound(ctx, "User not found")

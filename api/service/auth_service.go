@@ -35,6 +35,8 @@ func (s *authService) AuthenticateWithGoogle(ctx *gin.Context, state string, cod
 		return dto.UserResponse{}, helper.ErrInvalidOAuthState
 	}
 
+	helper.SetCookie(ctx.Writer, "Oauth-State", "", 0)
+
 	content, err := s.getUserInfoFromGoogle(code)
 	if err != nil {
 		return dto.UserResponse{}, err

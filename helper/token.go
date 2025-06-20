@@ -59,6 +59,8 @@ func VerifySignedToken(ctx *gin.Context, email string) error {
 		return []byte(secret), nil
 	})
 
+	SetCookie(ctx.Writer, "Signed-token", "", 0)
+
 	if err != nil {
 		return ErrInvalidCredentials
 	}
