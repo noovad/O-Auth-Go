@@ -28,7 +28,7 @@ func OAuthRoutes(r *gin.Engine) {
 		auth := r.Group("/auth")
 		auth.POST("/sign-up", guestMiddleware, authController.HandleSignUp)
 		auth.POST("/login", guestMiddleware, authController.HandleLogin)
-		auth.POST("/logout", authMiddleware, authController.HandleLogout)
+		auth.POST("/logout", authController.HandleLogout)
 		auth.GET("/google", guestMiddleware, controller.HandleGoogleAuth)
 		auth.GET("/callback", authController.HandleGoogleAuthCallback)
 		auth.DELETE("/delete-account", authMiddleware, authController.HandleDeleteAccount)

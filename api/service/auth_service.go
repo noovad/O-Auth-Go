@@ -63,11 +63,14 @@ func (s *authService) AuthenticateWithGoogle(ctx *gin.Context, state string, cod
 func (s *authService) AuthenticateWithUsername(ctx *gin.Context, user dto.LoginRequest) (dto.UserResponse, error) {
 	existingUser, err := s.usersService.FindByUsername(user.Username)
 	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return dto.UserResponse{}, helper.ErrUsernameNotFound
+		}
 		return dto.UserResponse{}, helper.ErrInvalidCredentials
 	}
 
 	if !helper.CheckPasswordHash(user.Password, existingUser.Password) {
-		return dto.UserResponse{}, helper.ErrInvalidCredentials
+		return dto.UserResponse{}, helper.ErrWrongPassword
 	}
 
 	existingUser.Password = ""

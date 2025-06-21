@@ -101,6 +101,8 @@ func ensureUserExists(ctx *gin.Context, userId string) bool {
 		return false
 	}
 	if !exists {
+		SetCookie(ctx.Writer, "access_token", "", -1)
+		SetCookie(ctx.Writer, "refresh_token", "", -1)
 		responsejson.Unauthorized(ctx, "User not found")
 		ctx.Abort()
 		return false

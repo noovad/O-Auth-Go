@@ -6,7 +6,9 @@ import (
 )
 
 var (
+	ErrWrongPassword = errors.New("wrong password")
 	ErrInvalidCredentials  = errors.New("invalid credentials")
+	ErrUsernameNotFound = errors.New("username not found")
 	ErrInvalidOAuthState   = errors.New("invalid oauth state")
 	ErrOAuthStateNotFound  = errors.New("oauth state not found")
 

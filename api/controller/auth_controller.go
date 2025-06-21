@@ -86,6 +86,14 @@ func (c *AuthController) HandleLogin(ctx *gin.Context) {
 
 	userResponse, err := c.authService.AuthenticateWithUsername(ctx, user)
 	if err != nil {
+		if errors.Is(err, helper.ErrUsernameNotFound) {
+			responsejson.NotFound(ctx, "Username not found")
+			return
+		}
+		if errors.Is(err, helper.ErrWrongPassword) {
+			responsejson.Unauthorized(ctx, "Wrong password")
+			return
+		}
 		if errors.Is(err, helper.ErrInvalidCredentials) {
 			responsejson.Unauthorized(ctx, "Invalid username or password")
 			return

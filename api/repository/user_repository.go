@@ -1,7 +1,6 @@
 package repository
 
 import (
-	"errors"
 	"go_auth-project/model"
 
 	"github.com/google/uuid"
@@ -36,9 +35,7 @@ func (t *UsersRepositoryImpl) FindByEmail(Email string) (model.User, error) {
 	var user model.User
 	result := t.Db.Where("email = ?", Email).First(&user)
 
-	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-		return user, gorm.ErrRecordNotFound
-	} else if result.Error != nil {
+	if result.Error != nil {
 		return user, result.Error
 	}
 	return user, nil
@@ -48,9 +45,7 @@ func (t *UsersRepositoryImpl) FindByUsername(username string) (model.User, error
 	var user model.User
 	result := t.Db.Where("username = ?", username).First(&user)
 
-	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-		return user, gorm.ErrRecordNotFound
-	} else if result.Error != nil {
+	if result.Error != nil {
 		return user, result.Error
 	}
 	return user, nil
