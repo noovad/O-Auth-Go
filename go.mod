@@ -1,4 +1,4 @@
-module go_auth-project
+module go-auth
 
 go 1.24.0
 

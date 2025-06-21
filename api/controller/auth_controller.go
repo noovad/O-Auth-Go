@@ -2,11 +2,11 @@ package controller
 
 import (
 	"errors"
-	"go_auth-project/api/service"
-	"go_auth-project/config"
-	"go_auth-project/dto"
-	"go_auth-project/helper"
-	"go_auth-project/helper/responsejson"
+	"go-auth/api/service"
+	"go-auth/config"
+	"go-auth/dto"
+	"go-auth/helper"
+	"go-auth/helper/responsejson"
 	"net/http"
 	"os"
 

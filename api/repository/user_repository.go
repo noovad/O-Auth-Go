@@ -1,7 +1,7 @@
 package repository
 
 import (
-	"go_auth-project/model"
+	"go-auth/model"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"

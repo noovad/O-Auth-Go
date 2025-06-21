@@ -1,7 +1,7 @@
 package helper
 
 import (
-	"go_auth-project/dto"
+	"go-auth/dto"
 	"os"
 	"time"
 

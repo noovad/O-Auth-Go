@@ -3,9 +3,9 @@ package helper
 import (
 	"context"
 	"fmt"
-	"go_auth-project/config"
-	"go_auth-project/dto"
-	"go_auth-project/helper/responsejson"
+	"go-auth/config"
+	"go-auth/dto"
+	"go-auth/helper/responsejson"
 	"os"
 	"time"
 

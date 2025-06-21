@@ -7,10 +7,10 @@
 package api
 
 import (
-	"go_auth-project/api/controller"
-	"go_auth-project/api/repository"
-	"go_auth-project/api/service"
-	"go_auth-project/config"
+	"go-auth/api/controller"
+	"go-auth/api/repository"
+	"go-auth/api/service"
+	"go-auth/config"
 )
 
 // Injectors from injector.go:

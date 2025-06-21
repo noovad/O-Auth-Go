@@ -1,9 +1,9 @@
 package router
 
 import (
-	"go_auth-project/api"
-	"go_auth-project/api/controller"
-	"go_auth-project/helper"
+	"go-auth/api"
+	"go-auth/api/controller"
+	"go-auth/helper"
 	"os"
 	"time"
 

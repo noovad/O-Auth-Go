@@ -1,9 +1,9 @@
 package main
 
 import (
-	"go_auth-project/config"
-	"go_auth-project/model"
-	"go_auth-project/router"
+	"go-auth/config"
+	"go-auth/model"
+	"go-auth/router"
 	"log"
 	"net/http"
 	"os"
