@@ -1,11 +1,12 @@
 package router
 
 import (
-	"go-auth/api"
-	"go-auth/api/controller"
-	"go-auth/helper"
 	"os"
 	"time"
+
+	"github.com/noovad/go-auth/api"
+	"github.com/noovad/go-auth/api/controller"
+	"github.com/noovad/go-auth/helper"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"

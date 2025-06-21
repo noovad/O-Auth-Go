@@ -1,4 +1,4 @@
-module go-auth
+module github.com/noovad/go-auth
 
 go 1.24.0
 

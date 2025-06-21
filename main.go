@@ -1,13 +1,14 @@
 package main
 
 import (
-	"go-auth/config"
-	"go-auth/model"
-	"go-auth/router"
 	"log"
 	"net/http"
 	"os"
 	"time"
+
+	"github.com/noovad/go-auth/config"
+	"github.com/noovad/go-auth/model"
+	"github.com/noovad/go-auth/router"
 
 	"github.com/joho/godotenv"
 )

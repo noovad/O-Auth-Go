@@ -4,12 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"go-auth/config"
-	"go-auth/dto"
-	"go-auth/helper"
 	"io"
 	"net/http"
 	"os"
+
+	"github.com/noovad/go-auth/config"
+	"github.com/noovad/go-auth/dto"
+	"github.com/noovad/go-auth/helper"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"

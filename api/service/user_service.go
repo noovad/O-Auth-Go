@@ -1,10 +1,10 @@
 package service
 
 import (
-	"go-auth/api/repository"
-	"go-auth/dto"
-	"go-auth/helper"
-	"go-auth/model"
+	"github.com/noovad/go-auth/api/repository"
+	"github.com/noovad/go-auth/dto"
+	"github.com/noovad/go-auth/helper"
+	"github.com/noovad/go-auth/model"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"

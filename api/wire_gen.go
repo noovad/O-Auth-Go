@@ -7,10 +7,10 @@
 package api
 
 import (
-	"go-auth/api/controller"
-	"go-auth/api/repository"
-	"go-auth/api/service"
-	"go-auth/config"
+	"github.com/noovad/go-auth/api/controller"
+	"github.com/noovad/go-auth/api/repository"
+	"github.com/noovad/go-auth/api/service"
+	"github.com/noovad/go-auth/config"
 )
 
 // Injectors from injector.go:

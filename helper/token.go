@@ -1,9 +1,10 @@
 package helper
 
 import (
-	"go-auth/dto"
 	"os"
 	"time"
+
+	"github.com/noovad/go-auth/dto"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"

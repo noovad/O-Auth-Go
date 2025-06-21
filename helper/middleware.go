@@ -3,11 +3,12 @@ package helper
 import (
 	"context"
 	"fmt"
-	"go-auth/config"
-	"go-auth/dto"
-	"go-auth/helper/responsejson"
 	"os"
 	"time"
+
+	"github.com/noovad/go-auth/config"
+	"github.com/noovad/go-auth/dto"
+	"github.com/noovad/go-auth/helper/responsejson"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"

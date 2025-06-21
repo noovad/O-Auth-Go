@@ -2,13 +2,14 @@ package controller
 
 import (
 	"errors"
-	"go-auth/api/service"
-	"go-auth/config"
-	"go-auth/dto"
-	"go-auth/helper"
-	"go-auth/helper/responsejson"
 	"net/http"
 	"os"
+
+	"github.com/noovad/go-auth/api/service"
+	"github.com/noovad/go-auth/config"
+	"github.com/noovad/go-auth/dto"
+	"github.com/noovad/go-auth/helper"
+	"github.com/noovad/go-auth/helper/responsejson"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
