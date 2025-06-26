@@ -178,3 +178,33 @@ func (c *AuthController) HandleDeleteAccount(ctx *gin.Context) {
 	helper.SetCookie(ctx.Writer, "access_token", "", -1)
 	responsejson.Success(ctx, nil, "User deleted successfully")
 }
+
+func (c *AuthController) HandleUpdateAvatar(ctx *gin.Context) {
+	var updateAvatarReq dto.UpdateAvatarUserRequest
+	if err := ctx.ShouldBindJSON(&updateAvatarReq); err != nil {
+		responsejson.BadRequest(ctx, err, "Invalid update avatar request")
+		return
+	}
+
+	userId, exists := ctx.Get("userId")
+	if !exists {
+		responsejson.InternalServerError(ctx, nil, "User ID not found in context")
+		return
+	}
+	uid, ok := userId.(uuid.UUID)
+	if !ok {
+		responsejson.InternalServerError(ctx, nil, "Invalid user ID type")
+		return
+	}
+
+	updateAvatarReq.Id = uid
+	userResponse, err := c.userService.UpdateAvatar(updateAvatarReq)
+	if err != nil {
+		responsejson.InternalServerError(ctx, err, "Failed to update avatar")
+		return
+	}
+
+	responsejson.Success(ctx, gin.H{
+		"user": userResponse,
+	}, "Avatar updated successfully")
+}

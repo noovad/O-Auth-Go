@@ -33,5 +33,6 @@ func OAuthRoutes(r *gin.Engine) {
 		auth.GET("/google", guestMiddleware, controller.HandleGoogleAuth)
 		auth.GET("/callback", authController.HandleGoogleAuthCallback)
 		auth.DELETE("/delete-account", authMiddleware, authController.HandleDeleteAccount)
+		auth.PUT("/update-avatar", authMiddleware, authController.HandleUpdateAvatar)
 	}
 }

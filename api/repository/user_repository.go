@@ -12,6 +12,7 @@ type UsersRepository interface {
 	FindByEmail(Email string) (model.User, error)
 	FindByUsername(username string) (model.User, error)
 	DeleteById(id uuid.UUID) error
+	UpdateUser(user model.User) (model.User, error)
 }
 
 func NewUsersREpositoryImpl(Db *gorm.DB) UsersRepository {
@@ -60,4 +61,18 @@ func (r *UsersRepositoryImpl) DeleteById(id uuid.UUID) error {
 		return gorm.ErrRecordNotFound
 	}
 	return nil
+}
+
+func (r *UsersRepositoryImpl) UpdateUser(user model.User) (model.User, error) {
+	result := r.Db.Model(&model.User{}).
+		Where("id = ?", user.Id).
+		Update("avatar_type", user.AvatarType)
+	if result.Error != nil {
+		return user, result.Error
+	}
+	var updatedUser model.User
+	if err := r.Db.First(&updatedUser, "id = ?", user.Id).Error; err != nil {
+		return user, err
+	}
+	return updatedUser, nil
 }

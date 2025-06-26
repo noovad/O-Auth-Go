@@ -15,6 +15,7 @@ type UserService interface {
 	FindByEmail(Email string) (dto.UserResponse, error)
 	FindByUsername(username string) (dto.UserResponse, error)
 	DeleteById(id uuid.UUID) error
+	UpdateAvatar(user dto.UpdateAvatarUserRequest) (dto.UserResponse, error)
 }
 
 func NewUserServiceImpl(userRepository repository.UsersRepository, validate *validator.Validate) UserService {
@@ -96,4 +97,29 @@ func (t *UserServiceImpl) FindByUsername(username string) (dto.UserResponse, err
 
 func (t *UserServiceImpl) DeleteById(id uuid.UUID) error {
 	return t.UsersRepository.DeleteById(id)
+}
+
+func (t *UserServiceImpl) UpdateAvatar(user dto.UpdateAvatarUserRequest) (dto.UserResponse, error) {
+	err := t.Validate.Struct(user)
+	if err != nil {
+		return dto.UserResponse{}, helper.ErrFailedValidationWrap(err)
+	}
+
+	userModel := model.User{
+		Id:         user.Id,
+		AvatarType: user.AvatarType,
+	}
+
+	updatedUser, err := t.UsersRepository.UpdateUser(userModel)
+	if err != nil {
+		return dto.UserResponse{}, err
+	}
+
+	return dto.UserResponse{
+		Id:         updatedUser.Id,
+		Name:       updatedUser.Name,
+		Username:   updatedUser.Username,
+		Email:      updatedUser.Email,
+		AvatarType: updatedUser.AvatarType,
+	}, nil
 }

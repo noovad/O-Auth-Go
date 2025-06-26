@@ -18,3 +18,8 @@ type UserResponse struct {
 	AvatarType string    `json:"avatar_type,omitempty"`
 	Password   string    `json:"password,omitempty"`
 }
+
+type UpdateAvatarUserRequest struct {
+	Id         uuid.UUID `validate:"required" json:"id"`
+	AvatarType string `validate:"required" json:"avatar_type"`
+}
