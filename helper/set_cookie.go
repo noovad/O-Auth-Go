@@ -13,7 +13,7 @@ func SetCookie(w http.ResponseWriter, name, value string, maxAge int) {
 		Domain:   os.Getenv("BACKEND_DOMAIN"),
 		HttpOnly: true,
 		Secure:   true,
-		SameSite: http.SameSite(0),
+		SameSite: http.SameSiteNoneMode,
 		MaxAge:   maxAge,
 	})
 }

@@ -3,6 +3,7 @@ package helper
 import (
 	"context"
 	"fmt"
+	"log"
 	"os"
 	"time"
 
@@ -63,11 +64,13 @@ func parseToken(tokenStr, secret string) (*jwt.Token, jwt.MapClaims, error) {
 		return []byte(secret), nil
 	})
 	if err != nil || !token.Valid {
+		log.Printf("parseToken: Invalid token: %v", err)
 		return nil, nil, err
 	}
 
 	claims, ok := token.Claims.(jwt.MapClaims)
 	if !ok {
+		log.Println("parseToken: Invalid claims")
 		return nil, nil, fmt.Errorf("invalid claims")
 	}
 
@@ -77,11 +80,13 @@ func parseToken(tokenStr, secret string) (*jwt.Token, jwt.MapClaims, error) {
 func ValidateToken(tokenStr string, secret string) (dto.UserResponse, bool) {
 	_, claims, err := parseToken(tokenStr, secret)
 	if err != nil {
+		log.Printf("ValidateToken: Token validation failed: %v", err)
 		return dto.UserResponse{}, false
 	}
 
 	id, ok := claims["id"].(string)
 	if !ok {
+		log.Println("ValidateToken: ID claim missing or invalid")
 		return dto.UserResponse{}, false
 	}
 	UserResponse := dto.UserResponse{
@@ -97,6 +102,7 @@ func ValidateToken(tokenStr string, secret string) (dto.UserResponse, bool) {
 func ensureUserExists(ctx *gin.Context, userId string) bool {
 	exists, err := UserExistsInDatabase(userId)
 	if err != nil {
+		log.Printf("ensureUserExists: Error checking user existence: %v", err)
 		responsejson.InternalServerError(ctx, err)
 		ctx.Abort()
 		return false
@@ -122,6 +128,7 @@ func UserExistsInDatabase(userId string) (bool, error) {
 	err := db.WithContext(ctx).Raw(query, userId).Scan(&exists).Error
 
 	if err != nil {
+		log.Printf("UserExistsInDatabase: Database error: %v", err)
 		return false, err
 	}
 
