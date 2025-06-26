@@ -29,7 +29,7 @@ func CreateAccessToken(user dto.UserResponse) string {
 		"email":       user.Email,
 		"avatar_type": user.AvatarType,
 	}
-	return generateToken(claims, secret, time.Minute*30)
+	return generateToken(claims, secret, time.Minute*5)
 }
 
 func CreateRefreshToken(user dto.UserResponse) string {
