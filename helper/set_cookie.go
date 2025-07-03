@@ -2,7 +2,6 @@ package helper
 
 import (
 	"net/http"
-	"os"
 )
 
 func SetCookie(w http.ResponseWriter, name, value string, maxAge int) {
@@ -10,7 +9,7 @@ func SetCookie(w http.ResponseWriter, name, value string, maxAge int) {
 		Name:     name,
 		Value:    value,
 		Path:     "/",
-		Domain:   os.Getenv("BACKEND_DOMAIN"),
+		Domain:   MustGetenv("BACKEND_DOMAIN"),
 		HttpOnly: true,
 		Secure:   true,
 		SameSite: http.SameSiteNoneMode,

@@ -6,7 +6,6 @@ import (
 	"errors"
 	"io"
 	"net/http"
-	"os"
 
 	"github.com/noovad/go-auth/config"
 	"github.com/noovad/go-auth/dto"
@@ -36,7 +35,7 @@ func (s *authService) AuthenticateWithGoogle(ctx *gin.Context, state string, cod
 		return dto.UserResponse{}, helper.ErrInvalidOAuthState
 	}
 
-	helper.SetCookie(ctx.Writer, "Oauth-State", "", 0)
+	helper.SetCookie(ctx.Writer, "Oauth-State", "", -1)
 
 	content, err := s.getUserInfoFromGoogle(code)
 	if err != nil {
@@ -85,7 +84,7 @@ func (s *authService) getUserInfoFromGoogle(code string) ([]byte, error) {
 		return nil, helper.ErrCodeExchangeFailed(err)
 	}
 
-	response, err := http.Get(os.Getenv("GOOGLE_USERINFO_URL") + "?access_token=" + token.AccessToken)
+	response, err := http.Get(helper.MustGetenv("GOOGLE_USERINFO_URL") + "?access_token=" + token.AccessToken)
 	if err != nil {
 		return nil, err
 	}

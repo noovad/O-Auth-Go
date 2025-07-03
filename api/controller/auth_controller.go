@@ -3,7 +3,6 @@ package controller
 import (
 	"errors"
 	"net/http"
-	"os"
 
 	"github.com/noovad/go-auth/api/service"
 	"github.com/noovad/go-auth/config"
@@ -69,10 +68,13 @@ func (c *AuthController) HandleSignUp(ctx *gin.Context) {
 	}
 
 	refreshToken := helper.CreateRefreshToken(user)
-	helper.SetCookie(ctx.Writer, "refresh_token", refreshToken, 60*60*24*30)
+	accessTokenAge := helper.MustParseDurationEnv("REFRESH_TOKEN_AGE")
+	helper.SetCookie(ctx.Writer, "refresh_token", refreshToken, int(accessTokenAge))
 
 	accessToken := helper.CreateAccessToken(user)
-	helper.SetCookie(ctx.Writer, "access_token", accessToken, 60*5)
+	refreshTokenAge := helper.MustParseDurationEnv("ACCESS_TOKEN_AGE")
+	helper.SetCookie(ctx.Writer, "access_token", accessToken, int(refreshTokenAge))
+
 	responsejson.Success(ctx, gin.H{
 		"user": user,
 	}, "Successfully signed up")
@@ -104,10 +106,12 @@ func (c *AuthController) HandleLogin(ctx *gin.Context) {
 	}
 
 	refreshToken := helper.CreateRefreshToken(userResponse)
-	helper.SetCookie(ctx.Writer, "refresh_token", refreshToken, 60*60*24*30)
+	accessTokenAge := helper.MustParseDurationEnv("REFRESH_TOKEN_AGE")
+	helper.SetCookie(ctx.Writer, "refresh_token", refreshToken, int(accessTokenAge))
 
 	accessToken := helper.CreateAccessToken(userResponse)
-	helper.SetCookie(ctx.Writer, "access_token", accessToken, 60*5)
+	refreshTokenAge := helper.MustParseDurationEnv("ACCESS_TOKEN_AGE")
+	helper.SetCookie(ctx.Writer, "access_token", accessToken, int(refreshTokenAge))
 
 	responsejson.Success(ctx, gin.H{
 		"user": userResponse,
@@ -127,29 +131,32 @@ func (c *AuthController) HandleGoogleAuthCallback(ctx *gin.Context) {
 	user, err := c.authService.AuthenticateWithGoogle(ctx, state, code)
 	if err != nil {
 		if errors.Is(err, helper.ErrOAuthStateNotFound) {
-			ctx.Redirect(http.StatusPermanentRedirect, os.Getenv("FRONTEND_BASE_URL")+"/login?error=Invalid credentials, please login again")
+			ctx.Redirect(http.StatusPermanentRedirect, helper.MustGetenv("FRONTEND_BASE_URL")+"/login?error=Invalid credentials, please login again")
 			return
 		}
 		if errors.Is(err, helper.ErrInvalidOAuthState) {
-			ctx.Redirect(http.StatusPermanentRedirect, os.Getenv("FRONTEND_BASE_URL")+"/login?error=Invalid credentials, please login again")
+			ctx.Redirect(http.StatusPermanentRedirect, helper.MustGetenv("FRONTEND_BASE_URL")+"/login?error=Invalid credentials, please login again")
 			return
 		}
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			ctx.SetCookie("Signed-token", helper.CreateSignedToken(user.Email), 60*5, "/", os.Getenv("BACKEND_DOMAIN"), true, true)
-			ctx.Redirect(http.StatusPermanentRedirect, os.Getenv("FRONTEND_BASE_URL")+"/sign-up?email="+user.Email)
+			ctx.SetCookie("Signed-token", helper.CreateSignedToken(user.Email), 60*1, "/", helper.MustGetenv("BACKEND_DOMAIN"), true, true)
+			ctx.Redirect(http.StatusPermanentRedirect, helper.MustGetenv("FRONTEND_BASE_URL")+"/sign-up?email="+user.Email)
 			return
 		}
 
-		ctx.Redirect(http.StatusPermanentRedirect, os.Getenv("FRONTEND_BASE_URL")+"/login?error=Failed to authenticate with Google. Please try again later.")
+		ctx.Redirect(http.StatusPermanentRedirect, helper.MustGetenv("FRONTEND_BASE_URL")+"/login?error=Failed to authenticate with Google. Please try again later.")
 		return
 	}
 
 	refreshToken := helper.CreateRefreshToken(user)
-	helper.SetCookie(ctx.Writer, "refresh_token", refreshToken, 60*60*24*30)
-	accessToken := helper.CreateAccessToken(user)
-	helper.SetCookie(ctx.Writer, "access_token", accessToken, 60*5)
+	accessTokenAge := helper.MustParseDurationEnv("REFRESH_TOKEN_AGE")
+	helper.SetCookie(ctx.Writer, "refresh_token", refreshToken, int(accessTokenAge))
 
-	redirectURL := os.Getenv("FRONTEND_BASE_URL") + "/"
+	accessToken := helper.CreateAccessToken(user)
+	refreshTokenAge := helper.MustParseDurationEnv("ACCESS_TOKEN_AGE")
+	helper.SetCookie(ctx.Writer, "access_token", accessToken, int(refreshTokenAge))
+
+	redirectURL := helper.MustGetenv("FRONTEND_BASE_URL") + "/"
 	ctx.Redirect(http.StatusTemporaryRedirect, redirectURL)
 }
 

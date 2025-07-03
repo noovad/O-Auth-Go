@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"os"
 	"time"
 
 	"github.com/noovad/go-auth/config"
@@ -18,7 +17,7 @@ import (
 
 func AuthMiddleware(ctx *gin.Context) {
 	accessToken, _ := ctx.Cookie("access_token")
-	user, valid := ValidateToken(accessToken, os.Getenv("GENERATE_TOKEN_SECRET"))
+	user, valid := ValidateToken(accessToken, MustGetenv("GENERATE_ACCESS_TOKEN_SECRET"))
 	if valid && ensureUserExists(ctx, user.Id.String()) {
 		ctx.Set("userId", user.Id)
 		ctx.Next()
@@ -26,10 +25,12 @@ func AuthMiddleware(ctx *gin.Context) {
 	}
 
 	refreshToken, _ := ctx.Cookie("refresh_token")
-	user, refreshValid := ValidateToken(refreshToken, os.Getenv("GENERATE_REFRESH_TOKEN_SECRET"))
+	user, refreshValid := ValidateToken(refreshToken, MustGetenv("GENERATE_REFRESH_TOKEN_SECRET"))
 	if refreshValid && ensureUserExists(ctx, user.Id.String()) {
 		newAccessToken := CreateAccessToken(user)
-		SetCookie(ctx.Writer, "access_token", newAccessToken, 60*60*24)
+		refreshTokenAge := MustParseDurationEnv("ACCESS_TOKEN_AGE")
+
+		SetCookie(ctx.Writer, "access_token", newAccessToken, int(refreshTokenAge))
 		ctx.Set("userId", user.Id)
 		ctx.Next()
 		return
@@ -41,7 +42,7 @@ func AuthMiddleware(ctx *gin.Context) {
 
 func GuestMiddleware(ctx *gin.Context) {
 	accessToken, _ := ctx.Cookie("access_token")
-	user, valid := ValidateToken(accessToken, os.Getenv("GENERATE_TOKEN_SECRET"))
+	user, valid := ValidateToken(accessToken, MustGetenv("GENERATE_ACCESS_TOKEN_SECRET"))
 	if valid && ensureUserExists(ctx, user.Id.String()) {
 		responsejson.Forbidden(ctx, "You are already logged in")
 		ctx.Abort()
@@ -49,7 +50,7 @@ func GuestMiddleware(ctx *gin.Context) {
 	}
 
 	refreshToken, _ := ctx.Cookie("refresh_token")
-	user, refreshValid := ValidateToken(refreshToken, os.Getenv("GENERATE_REFRESH_TOKEN_SECRET"))
+	user, refreshValid := ValidateToken(refreshToken, MustGetenv("GENERATE_REFRESH_TOKEN_SECRET"))
 	if refreshValid && ensureUserExists(ctx, user.Id.String()) {
 		responsejson.Forbidden(ctx, "You are already logged in")
 		ctx.Abort()

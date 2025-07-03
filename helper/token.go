@@ -1,7 +1,7 @@
 package helper
 
 import (
-	"os"
+	"strconv"
 	"time"
 
 	"github.com/noovad/go-auth/dto"
@@ -21,7 +21,7 @@ func generateToken(claims jwt.MapClaims, secret string, duration time.Duration) 
 }
 
 func CreateAccessToken(user dto.UserResponse) string {
-	secret := os.Getenv("GENERATE_TOKEN_SECRET")
+	secret := MustGetenv("GENERATE_ACCESS_TOKEN_SECRET")
 	claims := jwt.MapClaims{
 		"id":          user.Id,
 		"name":        user.Name,
@@ -29,11 +29,12 @@ func CreateAccessToken(user dto.UserResponse) string {
 		"email":       user.Email,
 		"avatar_type": user.AvatarType,
 	}
-	return generateToken(claims, secret, time.Minute*5)
+	ageDuration := MustParseDurationEnv("ACCESS_TOKEN_AGE")
+	return generateToken(claims, secret, time.Second*time.Duration(ageDuration))
 }
 
 func CreateRefreshToken(user dto.UserResponse) string {
-	secret := os.Getenv("GENERATE_REFRESH_TOKEN_SECRET")
+	secret := MustGetenv("GENERATE_REFRESH_TOKEN_SECRET")
 	claims := jwt.MapClaims{
 		"id":          user.Id,
 		"name":        user.Name,
@@ -41,11 +42,12 @@ func CreateRefreshToken(user dto.UserResponse) string {
 		"email":       user.Email,
 		"avatar_type": user.AvatarType,
 	}
-	return generateToken(claims, secret, time.Hour*24*30)
+	ageDuration := MustParseDurationEnv("REFRESH_TOKEN_AGE")
+	return generateToken(claims, secret, time.Second*time.Duration(ageDuration))
 }
 
 func CreateSignedToken(email string) string {
-	secret := os.Getenv("GENERATE_SIGNING_TOKEN_SECRET")
+	secret := MustGetenv("GENERATE_SIGNING_TOKEN_SECRET")
 	claims := jwt.MapClaims{
 		"id": email,
 	}
@@ -55,12 +57,12 @@ func CreateSignedToken(email string) string {
 func VerifySignedToken(ctx *gin.Context, email string) error {
 	signedToken, _ := ctx.Cookie("Signed-token")
 
-	secret := os.Getenv("GENERATE_SIGNING_TOKEN_SECRET")
+	secret := MustGetenv("GENERATE_SIGNING_TOKEN_SECRET")
 	parsedToken, err := jwt.Parse(signedToken, func(token *jwt.Token) (interface{}, error) {
 		return []byte(secret), nil
 	})
 
-	SetCookie(ctx.Writer, "Signed-token", "", 0)
+	SetCookie(ctx.Writer, "Signed-token", "", -1)
 
 	if err != nil {
 		return ErrInvalidCredentials
@@ -74,4 +76,13 @@ func VerifySignedToken(ctx *gin.Context, email string) error {
 	} else {
 		return ErrInvalidCredentials
 	}
+}
+
+func MustParseDurationEnv(key string) int {
+	value := MustGetenv(key)
+	seconds, err := strconv.Atoi(value)
+	if err != nil {
+		panic("Invalid " + key + " format: " + err.Error())
+	}
+	return seconds
 }

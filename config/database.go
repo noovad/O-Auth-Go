@@ -22,21 +22,30 @@ func DatabaseConnection() *gorm.DB {
 
 		var dsn string
 		if os.Getenv("ENV") == "production" {
-			fmt.Println("Database connection in production mode")
+			if os.Getenv("DATABASE_URL") == "" {
+				log.Fatal("Environment variable DATABASE_URL is not set or empty")
+			}
+
 			dsn = os.Getenv("DATABASE_URL")
+			fmt.Println("Database connection in production mode")
 		} else {
+			keys := []string{"DBHOST", "DBUSER", "DBPASSWORD", "DBNAME", "DBPORT"}
+			for _, key := range keys {
+				val := os.Getenv(key)
+				if val == "" {
+					log.Fatalf("Environment variable %s is not set or empty", key)
+				}
+			}
+
 			host := os.Getenv("DBHOST")
 			user := os.Getenv("DBUSER")
 			password := os.Getenv("DBPASSWORD")
 			dbname := os.Getenv("DBNAME")
 			port := os.Getenv("DBPORT")
 
-			if host == "" || user == "" || password == "" || dbname == "" || port == "" {
-				log.Fatal("One or more required environment variables are not set")
-			}
-			fmt.Println("Database connection in development mode")
 			dsn = fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=disable TimeZone=Asia/Shanghai",
 				host, user, password, dbname, port)
+			fmt.Println("Database connection in development mode")
 		}
 
 		db, err = gorm.Open(postgres.Open(dsn), &gorm.Config{})

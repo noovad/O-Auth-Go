@@ -1,7 +1,6 @@
 package router
 
 import (
-	"os"
 	"time"
 
 	"github.com/noovad/go-auth/api"
@@ -18,7 +17,7 @@ func OAuthRoutes(r *gin.Engine) {
 	authController := api.AuthInjector()
 
 	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{os.Getenv("FRONTEND_BASE_URL")},
+		AllowOrigins:     []string{helper.MustGetenv("FRONTEND_BASE_URL")},
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization", "Refresh-token", "Signed-token", "Oauth-State"},
 		AllowCredentials: true,
